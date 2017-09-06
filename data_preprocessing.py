@@ -1,18 +1,37 @@
 import os.path as path
 import pandas as pd
+from readers.vcfreader import VCFReader
 
 GCT_NAME = "globalClinTraining.csv"
 SAMP_ID_NAME = "SamplId"
 DATA_PROPS = {
     "MA": {
-        "__folder": "Microarray Data",
+        "__dataparentfolder": "Expression Data",
+        "__datafolder": "Microarray Data",
         "probe": "MA_probeLevelExpFile",
         "gene": "MA_geneLevelExpFile"
     },
     "RNASeq": {
-        "__folder": "RNA-Seq Data",
+        "__dataparentfolder": "Expression Data",
+        "__datafolder": "RNA-Seq Data",
         "trans": "RNASeq_transLevelExpFile",
         "gene": "RNASeq_geneLevelExpFile"
+    },
+    "Genomic": {
+        "__dataparentfolder": "Genomic Data",
+        "__datafolder" : "MMRF IA9 CelgeneProcessed",
+        "MuTectsnvs": { 
+                "__path": "MuTect2 SnpSift Annotated vcfs",
+                "__csvIndex": "WES_mutationFileMutect"
+                },
+        "StrelkaIndels": {
+                "__path": "Strelka SnpSift Annotated vcfs/indels",
+                "__csvIndex": "WES_mutationFileStrelkaIndel"
+            },
+        "Strelkasnvs": {
+            "__path": "Strelka SnpSift Annotated vcfs/snvs",
+            "__csvIndex": "WES_mutationFileStrelkaSNV"
+            }
     }
 }
 
@@ -35,7 +54,7 @@ class MMChallengeData(object):
         subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(subset=baseCols)
         dfiles = subcd[type_level].dropna().unique()
         print(dfiles)
-        dframes = [pd.read_csv(path.join(self.__parentFolder, "Expression Data", DATA_PROPS[datype]["__folder"], dfile),
+        dframes = [pd.read_csv(path.join(self.__parentFolder, DATA_PROPS[datype]["__dataparentfolder"], DATA_PROPS[datype]["__datafolder"], dfile),
                                index_col=[0], sep = sep).T for dfile in dfiles]
 
         if len(dframes) > 1:
@@ -46,7 +65,17 @@ class MMChallengeData(object):
         df = df.loc[subcd[type_level_sid], :]
         df.index = subcd["Patient"]
         return df, subcd[clinicalVariables], subcd[outputVariable]
-
+    
+    def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
+        type_level = DATA_PROPS[datype][level]
+        subdataset = self.clinicalData[["Patient", type_level["__csvIndex"]] + clinicalVariables + [outputVariable]]
+        reader = VCFReader()
+        pathdir = path.join(self.__parentFolder, DATA_PROPS[datype]["__dataparentfolder"], DATA_PROPS[datype]["__datafolder"], type_level["__path"])
+        filenames = self.clinicalData[type_level["__csvIndex"]].dropna().unique()
+        vcfdict =  { f : reader.readVCFFile(path.join(pathdir, f)) for f in filenames}
+        vcfdataframe = pd.DataFrame(vcfdict)
+        vcfdataframe.to_csv(path.join(self.__parentFolder, level+".csv"))
+        return pd.concat([subdataset, vcfdataframe], keys=[type_level["__csvIndex"],"file"])
 
 if __name__ == '__main__':
 
