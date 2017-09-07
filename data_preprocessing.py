@@ -1,5 +1,6 @@
 import os.path as path
 import pandas as pd
+import multiprocessing
 from readers.vcfreader import VCFReader
 
 GCT_NAME = "globalClinTraining.csv"
@@ -46,6 +47,7 @@ class MMChallengeData(object):
         self.clinicalData = pd.read_csv(path.join(self.__parentFolder, "Clinical Data", GCT_NAME))
         self.clinicalData["Patient Index"] = self.clinicalData.index
         self.clinicalData.index = self.clinicalData["Patient"]
+        self.__executor = multiprocessing.Pool(processes=multiprocessing.cpu_count()-1)
 
     def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", sep=","):
         type_level = DATA_PROPS[datype][level]
@@ -66,16 +68,20 @@ class MMChallengeData(object):
         df.index = subcd["Patient"]
         return df, subcd[clinicalVariables], subcd[outputVariable]
     
-    def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
+    def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe=""):
         type_level = DATA_PROPS[datype][level]
         subdataset = self.clinicalData[["Patient", type_level["__csvIndex"]] + clinicalVariables + [outputVariable]]
         reader = VCFReader()
         pathdir = path.join(self.__parentFolder, DATA_PROPS[datype]["__dataparentfolder"], DATA_PROPS[datype]["__datafolder"], type_level["__path"])
         filenames = self.clinicalData[type_level["__csvIndex"]].dropna().unique()
-        vcfdict =  { f : reader.readVCFFile(path.join(pathdir, f)) for f in filenames}
+        paths = [ path.join(pathdir, f) for f in filenames]
+        vcfdict =  { k : v for k, v in zip(filenames, self.__executor.map(reader.readVCFFile, paths))}
         vcfdataframe = pd.DataFrame(vcfdict)
-        vcfdataframe.to_csv(path.join(self.__parentFolder, level+".csv"))
-        return pd.concat([subdataset, vcfdataframe], keys=[type_level["__csvIndex"],"file"])
+        vcfdataframe = vcfdataframe.T
+        if savesubdataframe:
+            vcfdataframe.to_csv(savesubdataframe)
+        subdataset.set_index(type_level["__csvIndex"], drop=False, append=False, inplace=True)
+        return subdataset.join(vcfdataframe)
 
 if __name__ == '__main__':
 
