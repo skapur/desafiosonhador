@@ -12,7 +12,7 @@ class VCFReader(object):
         genetoscore = {}
         vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
         for record in vcfrecords:
-            if 'ANN' in record.INFO.keys():
+            if record.INFO.has_key('ANN'):
                 firstann = record.INFO['ANN'][0]
                 firstann = firstann.split('|')
                 gene_instance = firstann[3]
