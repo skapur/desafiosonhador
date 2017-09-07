@@ -78,10 +78,17 @@ class MMChallengeData(object):
         vcfdict =  { k : v for k, v in zip(filenames, self.__executor.map(reader.readVCFFile, paths))}
         vcfdataframe = pd.DataFrame(vcfdict)
         vcfdataframe = vcfdataframe.T
+        vcfdataframe.fillna(value=0, inplace=True)
         if savesubdataframe:
             vcfdataframe.to_csv(savesubdataframe)
         subdataset.set_index(type_level["__csvIndex"], drop=False, append=False, inplace=True)
-        return subdataset.join(vcfdataframe)
+        subdataset = subdataset.join(vcfdataframe)
+        
+        subdataset = subdataset.loc[pd.notnull(subdataset.index)]
+        #subdataset.set_index("Patient", drop=True, append=False, inplace=True)
+        subdataset.index = subdataset["Patient"]
+        subdataset = subdataset.drop(type_level["__csvIndex"], axis=1)
+        return subdataset
 
 if __name__ == '__main__':
 
