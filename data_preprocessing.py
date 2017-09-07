@@ -1,7 +1,9 @@
 import os.path as path
 import pandas as pd
+import numpy as np
 
-GCT_NAME = "globalClinTraining.csv"
+GCT_NAME = "sc2_Training_ClinAnnotations.csv"
+#GCT_NAME = "globalClinTraining.csv"
 SAMP_ID_NAME = "SamplId"
 DATA_PROPS = {
     "MA": {
@@ -27,8 +29,11 @@ class MMChallengeData(object):
         self.clinicalData = pd.read_csv(path.join(self.__parentFolder, "Clinical Data", GCT_NAME))
         self.clinicalData["Patient Index"] = self.clinicalData.index
         self.clinicalData.index = self.clinicalData["Patient"]
+        self.dataDict = None
+        self.dataPresence = None
 
-    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", sep=","):
+    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
+
         type_level = DATA_PROPS[datype][level]
         type_level_sid = type_level + SAMP_ID_NAME
         baseCols = ["Patient", type_level, type_level_sid]
@@ -36,7 +41,7 @@ class MMChallengeData(object):
         dfiles = subcd[type_level].dropna().unique()
         print(dfiles)
         dframes = [pd.read_csv(path.join(self.__parentFolder, "Expression Data", DATA_PROPS[datype]["__folder"], dfile),
-                               index_col=[0], sep = sep).T for dfile in dfiles]
+                               index_col=[0], sep = "," if "csv" in dfile[-3:] else "\t").T for dfile in dfiles]
 
         if len(dframes) > 1:
             df = pd.concat(dframes)
@@ -47,53 +52,49 @@ class MMChallengeData(object):
         df.index = subcd["Patient"]
         return df, subcd[clinicalVariables], subcd[outputVariable]
 
+    def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
+        return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
 
-if __name__ == '__main__':
+    def generateDataDict(self):
+        self.dataDict = self.getDataDict()
+        self.dataPresence = self.__generateDataTypePresence()
 
-    mmcd = MMChallengeData("/home/skapur/synapse/syn7222203")
-    mmcd.clinicalData["RNASeq_geneLevelExpFile"]
-    # mmcd = MMChallengeData("C:\\Users\\vitor\\synapse\\syn7222203")
-    # MA_gene = mmcd.getData("MA","gene")
-    RNA_gene, RNA_gene_cd, RNA_gene_output = mmcd.getData("RNASeq", "gene", sep=",")
-    RNA_trans, RNA_trans_cd, RNA_trans_output = mmcd.getData("RNASeq", "trans", sep="\t")
+    def assertDataDict(self):
+        assert self.dataDict is not None, "Data dictionary must be generated before checking for data type presence"
 
+    def __generateDataTypePresence(self):
+        self.assertDataDict()
+        return pd.DataFrame({pair: self.clinicalData.index.isin(df[0].index) for pair, df in self.dataDict.items()},index=self.clinicalData.index)
 
-    import numpy as np
-    from sklearn.naive_bayes import GaussianNB
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.feature_selection import SelectPercentile
-    from sklearn.pipeline import Pipeline
-    from sklearn.model_selection import cross_validate, GridSearchCV
-    from sklearn.metrics import accuracy_score, recall_score, f1_score, log_loss
-    from sklearn_pandas import DataFrameMapper
+    def modelPredictionMatrix(self, models={}):
+        self.assertDataDict()
 
+class MMChallengePredictor(object):
 
-    def report(cvr):
-        for name, array in cvr.items():
-            print(name+" : "+str(np.mean(array))+" +/- "+str(np.std(array)))
+    def __init__(self, mmc_data, mmc_data_presence, clf, data_types, single_vector_apply_fun=lambda x: x, multiple_vector_apply_fun=lambda x: x,name="Default Model"):
+        self.data_dict = mmc_data
+        self.data_presence = mmc_data_presence
+        self.clf = clf
+        assert not False in [dty in self.data_dict.keys() for dty in data_types], "Data types must exist on the data dictionary"
+        self.data_types = data_types
+        self.vapply = single_vector_apply_fun
+        self.capply = multiple_vector_apply_fun
 
+    def predict_case(self, index):
+        hasCorrectData = self.data_presence.loc[index,self.data_types]
+        #print(hasCorrectData)
+        if hasCorrectData.all():
+            X = self.get_feature_vector(index)
+            return self.clf.predict(X)
+        else:
+            return np.nan, np.nan
 
-    def prepare_data(X_gene, X_trans, y_orig, dropnaAxis=1):
-        X = pd.concat([X_gene, X_trans], axis=1).dropna(axis=dropnaAxis)
-        y = y_orig[X.index]
-        valid_samples = y != "CENSORED"
-        X, y = X[valid_samples], y[valid_samples] == "TRUE"
-        return X, y
-
-    MA_gene, MA_gene_cd, MA_gene_output = mmcd.getData("MA", "gene", sep=",")
-    MA_probe, MA_probe_cd, MA_probe_output = mmcd.getData("MA", "probe", sep=",")
-
-    Xr, yr = prepare_data(MA_gene, MA_probe, MA_gene_output, 1)
-    Xm, ym = prepare_data(RNA_gene, RNA_trans, RNA_gene_output, 0)
-
-    Xm = StandardScaler().fit_transform(Xm, ym)
-    Xr = StandardScaler().fit_transform(Xr, yr)
-
-    X = pd.concat([Xr,Xm], axis=0).dropna(axis=1)
-    y = pd.concat([yr,ym])[X.index]
-
-    pipeline_factory = lambda clf: Pipeline(steps=[("scale", StandardScaler()), ("feature_selection",SelectPercentile(percentile=30)), ("classify", clf)])
-
-    cv = cross_validate(pipeline_factory(GaussianNB()), X, y, scoring=["accuracy","recall","f1","neg_log_loss","precision"], cv = 10)
-    report(cv)
-
+    def get_feature_vector(self, index):
+        frame = None
+        if len(self.data_types) > 1:
+            frame = self.capply(pd.concat([self.vapply(self.data_dict[dty][0].loc[index,:]) for dty in self.data_types], axis=0))
+        elif len(self.data_types) == 1:
+            frame = self.vapply(self.data_dict[self.data_types[0]][0].loc[index,:])
+        else:
+            raise Exception("Data type tuple must contain at least one element")
+        return frame
