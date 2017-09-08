@@ -20,52 +20,94 @@ from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import scale
+from initial_file_telma import preprocess, featureSelection, modelTrain
 
 def create_csv_from_data():
     patha = '/home/dreamchallenge/synapse/syn7222203';
     mmcd = MMChallengeData(patha)
-    df = mmcd.getDataFrame("Genomic", "MuTectsnvs", savesubdataframe='/home/dreamchallenge/synapse/syn7222203/MuTectsnvs.csv')
-    df.to_csv("/home/dreamchallenge/synapse/syn7222203/MuTectsnvs_joined.csv")
+    df = mmcd.getDataFrame("Genomic", "Strelkasnvs", savesubdataframe='/home/dreamchallenge/synapse/syn7222203/Strelkasnvs.csv')
+    df.to_csv("/home/dreamchallenge/synapse/syn7222203/Strelkasnvs_joined.csv")
 
 def create_csv_from_data2():
     df1 = DataFrame.from_csv('/home/tiagoalves/rrodrigues/globalClinTraining.csv')
-    df1 = df1[["WES_mutationFileMutect", "D_Age", "D_ISS","HR_FLAG"]]
-    df2 = DataFrame.from_csv('/home/tiagoalves/rrodrigues/MuTectsnvs.csv')
-    df1.set_index("WES_mutationFileMutect", drop=True, append=False, inplace=True)
+    df1 = df1[["WES_mutationFileStrelkaIndel", "Patient", "D_Age", "D_ISS","HR_FLAG"]]
+    df2 = DataFrame.from_csv('/home/tiagoalves/rrodrigues/StrelkaIndels.csv')
+    df1.set_index("WES_mutationFileStrelkaIndel", drop=True, append=False, inplace=True)
     df3 = df1.join(df2)
     df4 = df3.loc[pd.notnull(df3.index)]
     df5 = df4[df4["HR_FLAG"] != "CENSORED"]
-    df5.to_csv("/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv")
-
-def prepair_dataframe(dataframe):
-    dataframe = dataframe.fillna(value=0)
-    if "WES_mutationFileMutect" in dataframe.columns:
-        dataframe = dataframe.drop("WES_mutationFileMutect", axis=1)
-    if "WES_mutationFileStrelkaIndel" in dataframe.columns:
-        dataframe = dataframe.drop("WES_mutationFileStrelkaIndel", axis=1)
-    if "WES_mutationFileStrelkaSNV" in dataframe.columns:
-        dataframe = dataframe.drop("WES_mutationFileStrelkaSNV", axis=1)
-    return dataframe
+    df5.set_index("Patient", drop=True, append=False, inplace=True)
+    df5.to_csv("/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv")
 
 def report(cvr):
     for name, array in cvr.items():
         print(name+" : "+str(np.mean(array))+" +/- "+str(np.std(array)))
 
-def run_traning():
-    df = DataFrame.from_csv("/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv")
-    df = prepair_dataframe(df)
-    y = df["HR_FLAG"]
+def prepare_dataframe(dataframe, removeClinical=False):
+    df = DataFrame.from_csv(dataframe)
+    df = df.fillna(value=0)
+    
+    df = df[df["HR_FLAG"] != "CENSORED"]
+    y = df["HR_FLAG"] == "TRUE"
     x = df.drop("HR_FLAG", axis=1)
-    anova_filter = SelectKBest(f_regression, k=5)
-    clf = svm.SVC(kernel='linear', probability=True)
-    anova_svm = Pipeline([('anova', anova_filter), ('svc', clf)])
-    anova_svm.set_params(anova__k=10, svc__C=.1)
-    #pipeline_factory = lambda clf: Pipeline(steps=[("scale", StandardScaler()), ("feature_selection",SelectPercentile(percentile=30)), ("classify", clf)])
-    cv = cross_validate(anova_svm, x, y, scoring=["accuracy","recall","f1","neg_log_loss","precision"], cv = 10)
-    report(cv)
+    
+    clinical = x[["D_Age", "D_ISS"]]
+    
+    if removeClinical:
+        x = x.drop("D_Age", axis=1)
+        x = x.drop("D_ISS", axis=1)
+    return x, y, clinical
+
+def run_traning(dataframefilename, removeClinical=False):
+    x, y = prepare_dataframe(dataframefilename, removeClinical)
+    
+    x = preprocess(x, 'scaler')
+    x = featureSelection(x, y, percentile = 40)
+    
+    models = ['knn', 'nbayes', 'decisionTree', 'logisticRegression', 'svm',
+              'nnet', 'rand_forest', 'bagging']
+
+    # Test models
+    for model in models:
+        modelTrain(x, y, method = model)
+        
+def run_traning_joiningFiles(dataframefiles, useClinical=False):
+    x = None
+    y = None
+    clinical = None
+    for file in dataframefiles:
+        x1, y1, clinical1 = prepare_dataframe(file, True)
+        if x is None and y is None and clinical is None:
+            x, y, clinical = x1, y1, clinical1
+        else:
+            x = pd.concat([x, x1], axis=1)
+            y = pd.concat([y, y1])
+            clinical = pd.concat([clinical, clinical1])
+    
+    x = x.groupby(x.columns, axis=1).sum()
+    y = y.groupby(y.index).first()
+    clinical = clinical.groupby(clinical.index).first()
+    
+    if useClinical:
+        x = pd.concat([x, clinical], axis=1)
+    
+    x = preprocess(x, 'scaler')
+    x = featureSelection(x, y, percentile = 40)
+    
+    #models = ['knn', 'nbayes', 'decisionTree', 'logisticRegression', 'svm', 'nnet', 'rand_forest', 'bagging']
+    models = ['svm', 'nnet']
+
+    # Test models
+    for model in models:
+        modelTrain(x, y, method = model)
     
 if __name__ == '__main__':
-    create_csv_from_data()
+    #create_csv_from_data()
+    #run_traning("/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv", removeClinical=True)
+    dataframefiles = ['/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv',
+                      '/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv', 
+                      '/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
+    run_traning_joiningFiles(dataframefiles, True)
     
     
 

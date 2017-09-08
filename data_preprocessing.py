@@ -85,8 +85,8 @@ class MMChallengeData(object):
         subdataset = subdataset.join(vcfdataframe)
         
         subdataset = subdataset.loc[pd.notnull(subdataset.index)]
-        #subdataset.set_index("Patient", drop=True, append=False, inplace=True)
-        subdataset.index = subdataset["Patient"]
+        subdataset.set_index("Patient", drop=True, append=False, inplace=True)
+        #subdataset.index = subdataset["Patient"]
         subdataset = subdataset.drop(type_level["__csvIndex"], axis=1)
         return subdataset
 
