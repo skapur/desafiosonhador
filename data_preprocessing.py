@@ -39,7 +39,7 @@ class MMChallengeData(object):
         baseCols = ["Patient", type_level, type_level_sid]
         subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(subset=baseCols)
         dfiles = subcd[type_level].dropna().unique()
-        print(dfiles)
+        #print(dfiles)
         dframes = [pd.read_csv(path.join(self.__parentFolder, "Expression Data", DATA_PROPS[datype]["__folder"], dfile),
                                index_col=[0], sep = "," if "csv" in dfile[-3:] else "\t").T for dfile in dfiles]
 
@@ -71,10 +71,13 @@ class MMChallengeData(object):
 
 class MMChallengePredictor(object):
 
-    def __init__(self, mmc_data, mmc_data_presence, clf, data_types, single_vector_apply_fun=lambda x: x, multiple_vector_apply_fun=lambda x: x,name="Default Model"):
-        self.data_dict = mmc_data
-        self.data_presence = mmc_data_presence
-        self.clf = clf
+    def __init__(self, mmcdata, predict_fun, confidence_fun, data_types, single_vector_apply_fun=lambda x: x, multiple_vector_apply_fun=lambda x: x, predictor_name="Default Predictor"):
+        self.data_dict = mmcdata.dataDict
+        self.data_presence = mmcdata.dataPresence
+        self.clinical_data = mmcdata.clinicalData
+        self.predictor_name = predictor_name
+        self.predict_fun = predict_fun
+        self.confidence_fun = confidence_fun
         assert not False in [dty in self.data_dict.keys() for dty in data_types], "Data types must exist on the data dictionary"
         self.data_types = data_types
         self.vapply = single_vector_apply_fun
@@ -85,9 +88,25 @@ class MMChallengePredictor(object):
         #print(hasCorrectData)
         if hasCorrectData.all():
             X = self.get_feature_vector(index)
-            return self.clf.predict(X)
+            return self.predict_fun(X), self.confidence_fun(X)
         else:
             return np.nan, np.nan
+
+    def get_pred_df_row(self,case):
+        row = self.clinical_data.loc[case,:][["Study","Patient"]].tolist()
+        try:
+            flag, score = self.predict_case(case)
+        except Exception as e:
+            flag, score = np.nan, np.nan
+        row = row + [flag,score]
+        return row
+
+    def predict_dataset(self):
+        columns = ["study","patient",'_'.join(["predictionscore",self.predictor_name]),'_'.join(["highriskflag",self.predictor_name])]
+        rows = [self.get_pred_df_row(case) for case in self.clinical_data.index]
+        df = pd.DataFrame(rows)
+        df.columns = columns
+        return pd.DataFrame(df)
 
     def get_feature_vector(self, index):
         frame = None
