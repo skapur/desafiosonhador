@@ -6,24 +6,24 @@ import pickle
 
 trained_Models = {
     'ALL' : {
-        "__transformerFilename" : "",
-        "__classifierFilename" : "" 
+        "__transformerFilename" : "ALL_Transformer_CH1.pkl",
+        "__classifierFilename" : "ALL_Classifier_CH1.pkl" 
         },
     'MUC' : {
-        "__transformerFilename" : "",
-        "__classifierFilename" : "" 
+        "__transformerFilename" : "MuTectsnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "MuTectsnvs_Classifier_CH1.pkl" 
         },
     'STR_ALL' : {
-        "__transformerFilename" : "",
-        "__classifierFilename" : "" 
+        "__transformerFilename" : "Strelka_Transformer_CH1.pkl",
+        "__classifierFilename" : "Strelka_Classifier_CH1.pkl" 
         },
     'STR_IN' : {
-        "__transformerFilename" : "",
-        "__classifierFilename" : "" 
+        "__transformerFilename" : "StrelkaIndels_Transformer_CH1.pkl",
+        "__classifierFilename" : "StrelkaIndels_Classifier_CH1.pkl" 
         },
     'STR_SN' : {
-        "__transformerFilename" : "",
-        "__classifierFilename" : "" 
+        "__transformerFilename" : "Strelkasnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "Strelkasnvs_Classifier_CH1.pkl" 
         }          
     }
 
@@ -45,8 +45,8 @@ def main(argv):
             outputfile = arg
     
     processingData = processor.MMChallengeData(inputfile);
-    x, y, modelType = processingData.preprocessPrediction();
-    x, y = processingData.df_reduce(x,y, scaler="scaler", fit = False, filename = trained_Models[modelType]["__transformerFilename"])
+    x, y, modelType = processingData.preprocessPrediction(outputVariable="D_Age");
+    x, y = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
     
     processingData.dataDict = {"genomic" : (x,[],y) }
     processingData.__generateDataTypePresence()

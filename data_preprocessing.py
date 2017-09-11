@@ -27,6 +27,27 @@ GENOMIC_PROPS = {
 def log_preprocessing(df):
     pass
 
+def df_reduce(X, y, scaler = None, fts = None, fit = True, filename = None):
+    import pickle
+    if fit:
+        scaler.fit(X, y); X = scaler.transform(X) 
+        fts.fit(X, y); X = fts.transform(X)
+        if filename is not None: # save the objects to disk
+            f = open(filename, 'wb')
+            pickle.dump({'scaler': scaler, 'fts': fts}, f)
+            f.close()
+    else:
+        try: # load the objects from disk
+            f = open(filename, 'rb')
+            dic = pickle.load(f)
+            scaler = dic['scaler']; fts = dic['fts']
+            f.close()
+            X = scaler.transform(X); X = fts.transform(X)
+        except:
+            print ("Unexpected error:", sys.exc_info()[0])
+            raise
+    return X, y, fts.get_support(True)
+
 
 class MMChallengeData(object):
     def __init__(self, submissionfile):
@@ -60,7 +81,7 @@ class MMChallengeData(object):
         subdataset = self.clinicalData[["Patient", GENOMIC_PROPS[level]] + clinicalVariables + [outputVariable]]
         reader = VCFReader()
         filenames = self.clinicalData[GENOMIC_PROPS[level]].dropna().unique()
-        if not filenames:
+        if not filenames.size:
             return None
         paths = [ path.join(directoryFolder, f) for f in filenames]
         vcfdict =  { k : v for k, v in zip(filenames, self.__executor.map(reader.readVCFFile, paths))}
@@ -92,7 +113,7 @@ class MMChallengeData(object):
             x = x.drop("D_ISS", axis=1)
         return x, y, clinical
     
-    def preprocessPrediction(self, useClinical=True, savePreprocessingDirectory='', directoryFolder='/test-data/'):
+    def preprocessPrediction(self, useClinical=True, outputVariable="HR_FLAG", savePreprocessingDirectory='', directoryFolder='/test-data/'):
         muctectCSV = ''
         strelkaIndelsCSV = ''
         strelkasnvsCSV = ''
@@ -101,11 +122,11 @@ class MMChallengeData(object):
             strelkaIndelsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
             strelkasnvsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
             
-        mucDF = self.getDataFrame("MuTectsnvs", savesubdataframe=muctectCSV, directoryFolder=directoryFolder)
-        strelkaInDF = self.getDataFrame("StrelkaIndels", savesubdataframe=strelkaIndelsCSV, directoryFolder=directoryFolder)
-        streklaSnDF = self.getDataFrame("Strelkasnvs", savesubdataframe=strelkasnvsCSV, directoryFolder=directoryFolder)
+        mucDF = self.getDataFrame("MuTectsnvs", outputVariable=outputVariable, savesubdataframe=muctectCSV, directoryFolder=directoryFolder)
+        strelkaInDF = self.getDataFrame("StrelkaIndels", outputVariable=outputVariable, savesubdataframe=strelkaIndelsCSV, directoryFolder=directoryFolder)
+        streklaSnDF = self.getDataFrame("Strelkasnvs", outputVariable=outputVariable, savesubdataframe=strelkasnvsCSV, directoryFolder=directoryFolder)
         
-        if mucDF != None and strelkaInDF != None and streklaSnDF != None:
+        if mucDF is not None and strelkaInDF is not None and streklaSnDF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(mucDF)
 
             x2, y2, clinical2 = self.get_X_Y_FromDataframe(strelkaInDF)
@@ -126,13 +147,13 @@ class MMChallengeData(object):
             
             return x, y, 'ALL'
         
-        elif mucDF != None:
+        elif mucDF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(mucDF)
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
             return x, y, 'MUC'
         
-        elif strelkaInDF != None and streklaSnDF != None:
+        elif strelkaInDF is not None and streklaSnDF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
             x2, y2, clinical2 = self.get_X_Y_FromDataframe(streklaSnDF)
             x = pd.concat([x, x2], axis=1)
@@ -143,40 +164,20 @@ class MMChallengeData(object):
             
             return x, y, 'STR_ALL'
         
-        elif strelkaInDF != None:
+        elif strelkaInDF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
             return x, y, 'STR_IN'
         
-        elif streklaSnDF != None:
+        elif streklaSnDF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
             return x, y, 'STR_SN'
         else:
             print('The input challenge file is not been read correctly!')
-        
-    def df_reduce(self, X, y, scaler = None, fts = None, fit = True, filename = None):
-        import pickle
-        if fit:
-            scaler.fit(X, y); X = scaler.transform(X)
-            fts.fit(X, y); X = fts.transform(X)
-            if filename is not None: # save the objects to disk
-                f = open(filename, 'wb')
-                pickle.dump({'scaler': scaler, 'fts': fts}, f)
-                f.close()
-        else:
-            try: # load the objects from disk
-                f = open(filename, 'rb')
-                dic = pickle.load(f)
-                scaler = dic['scaler']; fts = dic['fts']
-                f.close()
-                X = scaler.transform(X); X = fts.transform(X)
-            except:
-                print ("Unexpected error:", sys.exc_info()[0])
-                raise
-        return X, y, fts.get_support(True)
+            return None, None, None
 
     def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
         return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
