@@ -4,24 +4,17 @@ import numpy as np
 import multiprocessing
 from readers.vcfreader import VCFReader
 
-GCT_NAME = "globalClinTraining.csv"
 SAMP_ID_NAME = "SamplId"
 DATA_PROPS = {
     "MA": {
-        "__dataparentfolder": "Expression Data",
-        "__datafolder": "Microarray Data",
         "probe": "MA_probeLevelExpFile",
         "gene": "MA_geneLevelExpFile"
     },
     "RNASeq": {
-        "__dataparentfolder": "Expression Data",
-        "__datafolder": "RNA-Seq Data",
         "trans": "RNASeq_transLevelExpFile",
         "gene": "RNASeq_geneLevelExpFile"
     },
     "Genomic": {
-        "__dataparentfolder": "Genomic Data",
-        "__datafolder" : "MMRF IA9 CelgeneProcessed",
         "MuTectsnvs": {
                 "__path": "MuTect2 SnpSift Annotated vcfs",
                 "__csvIndex": "WES_mutationFileMutect"
@@ -43,23 +36,22 @@ def log_preprocessing(df):
 
 
 class MMChallengeData(object):
-    def __init__(self, parentFolder):
-        self.__parentFolder = parentFolder
-        self.clinicalData = pd.read_csv(path.join(self.__parentFolder, "Clinical Data", GCT_NAME))
+    def __init__(self, submissionfile):
+        self.clinicalData = pd.read_csv(submissionfile)
         self.clinicalData["Patient Index"] = self.clinicalData.index
         self.clinicalData.index = self.clinicalData["Patient"]
         self.__executor = multiprocessing.Pool(processes=multiprocessing.cpu_count()-1)
         self.dataDict = None
         self.dataPresence = None
 
-    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", sep=","):
+    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", sep=",", directoryFolder='/test-data/'):
         type_level = DATA_PROPS[datype][level]
         type_level_sid = type_level + SAMP_ID_NAME
         baseCols = ["Patient", type_level, type_level_sid]
         subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(subset=baseCols)
         dfiles = subcd[type_level].dropna().unique()
         print(dfiles)
-        dframes = [pd.read_csv(path.join(self.__parentFolder, DATA_PROPS[datype]["__dataparentfolder"], DATA_PROPS[datype]["__datafolder"], dfile),
+        dframes = [pd.read_csv(path.join(directoryFolder, dfile),
                                index_col=[0], sep = sep).T for dfile in dfiles]
 
         if len(dframes) > 1:
@@ -71,13 +63,12 @@ class MMChallengeData(object):
         df.index = subcd["Patient"]
         return df, subcd[clinicalVariables], subcd[outputVariable]
 
-    def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe=""):
+    def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="", directoryFolder='/test-data/'):
         type_level = DATA_PROPS[datype][level]
         subdataset = self.clinicalData[["Patient", type_level["__csvIndex"]] + clinicalVariables + [outputVariable]]
         reader = VCFReader()
-        pathdir = path.join(self.__parentFolder, DATA_PROPS[datype]["__dataparentfolder"], DATA_PROPS[datype]["__datafolder"], type_level["__path"])
         filenames = self.clinicalData[type_level["__csvIndex"]].dropna().unique()
-        paths = [ path.join(pathdir, f) for f in filenames]
+        paths = [ path.join(directoryFolder, f) for f in filenames]
         vcfdict =  { k : v for k, v in zip(filenames, self.__executor.map(reader.readVCFFile, paths))}
         vcfdataframe = pd.DataFrame(vcfdict)
         vcfdataframe = vcfdataframe.T
@@ -91,20 +82,21 @@ class MMChallengeData(object):
         subdataset.set_index("Patient", drop=True, append=False, inplace=True)
         #subdataset.index = subdataset["Patient"]
         subdataset = subdataset.drop(type_level["__csvIndex"], axis=1)
+        return subdataset
 
     def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
         return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
-        return subdataset
+        
     def generateDataDict(self):
         self.dataDict = self.getDataDict()
         self.dataPresence = self.__generateDataTypePresence()
+        
     def assertDataDict(self):
         assert self.dataDict is not None, "Data dictionary must be generated before checking for data type presence"
+        
     def __generateDataTypePresence(self):
         self.assertDataDict()
         return pd.DataFrame({pair: self.clinicalData.index.isin(df[0].index) for pair, df in self.dataDict.items()},index=self.clinicalData.index)
-    def modelPredictionMatrix(self, models={}):
-        self.assertDataDict()
 
 class MMChallengePredictor(object):
 
@@ -116,6 +108,7 @@ class MMChallengePredictor(object):
             return self.predict_fun(X), self.confidence_fun(X)
         else:
             return np.nan, np.nan
+        
     def get_pred_df_row(self,case):
         row = self.clinical_data.loc[case,:][["Study","Patient"]].tolist()
         try:
@@ -124,12 +117,14 @@ class MMChallengePredictor(object):
             flag, score = np.nan, np.nan
         row = row + [flag,score]
         return row
+    
     def predict_dataset(self):
         columns = ["study","patient",'_'.join(["predictionscore",self.predictor_name]),'_'.join(["highriskflag",self.predictor_name])]
         rows = [self.get_pred_df_row(case) for case in self.clinical_data.index]
         df = pd.DataFrame(rows)
         df.columns = columns
         return pd.DataFrame(df)
+    
     def get_feature_vector(self, index):
         frame = None
         if len(self.data_types) > 1:
