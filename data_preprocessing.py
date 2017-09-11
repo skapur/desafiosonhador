@@ -6,7 +6,8 @@ from readers.vcfreader import VCFReader
 
 GCT_NAME = "globalClinTraining.csv"
 SAMP_ID_NAME = "SamplId"
-DATA_PROPS = {
+
+DATA_PROPS_EXPRESSION = {
     "MA": {
         "__dataparentfolder": "Expression Data",
         "__datafolder": "Microarray Data",
@@ -18,7 +19,10 @@ DATA_PROPS = {
         "__datafolder": "RNA-Seq Data",
         "trans": "RNASeq_transLevelExpFile",
         "gene": "RNASeq_geneLevelExpFile"
-    },
+        }
+}
+
+DATA_PROPS_GENOMIC = {
     "Genomic": {
         "__dataparentfolder": "Genomic Data",
         "__datafolder": "MMRF IA9 CelgeneProcessed",
@@ -53,14 +57,14 @@ class MMChallengeData(object):
         self.dataPresence = None
 
     def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
-        type_level = DATA_PROPS[datype][level]
+        type_level = DATA_PROPS_EXPRESSION[datype][level]
         type_level_sid = type_level + SAMP_ID_NAME
         baseCols = ["Patient", type_level, type_level_sid]
         subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(subset=baseCols)
         dfiles = subcd[type_level].dropna().unique()
         print(dfiles)
         dframes = [pd.read_csv(
-            path.join(self.__parentFolder, DATA_PROPS[datype]["__dataparentfolder"], DATA_PROPS[datype]["__datafolder"],
+            path.join(self.__parentFolder, DATA_PROPS_EXPRESSION[datype]["__dataparentfolder"], DATA_PROPS_EXPRESSION[datype]["__datafolder"],
                       dfile),
             index_col=[0], sep="," if dfile[-3:] == "csv" else "\t").T for dfile in dfiles]
 
@@ -75,11 +79,11 @@ class MMChallengeData(object):
 
     def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG",
                      savesubdataframe=""):
-        type_level = DATA_PROPS[datype][level]
+        type_level = DATA_PROPS_GENOMIC[datype][level]
         subdataset = self.clinicalData[["Patient", type_level["__csvIndex"]] + clinicalVariables + [outputVariable]]
         reader = VCFReader()
-        pathdir = path.join(self.__parentFolder, DATA_PROPS[datype]["__dataparentfolder"],
-                            DATA_PROPS[datype]["__datafolder"], type_level["__path"])
+        pathdir = path.join(self.__parentFolder, DATA_PROPS_GENOMIC[datype]["__dataparentfolder"],
+                            DATA_PROPS_GENOMIC[datype]["__datafolder"], type_level["__path"])
         filenames = self.clinicalData[type_level["__csvIndex"]].dropna().unique()
         paths = [path.join(pathdir, f) for f in filenames]
         vcfdict = {k: v for k, v in zip(filenames, self.__executor.map(reader.readVCFFile, paths))}
@@ -94,12 +98,12 @@ class MMChallengeData(object):
         subdataset = subdataset.loc[pd.notnull(subdataset.index)]
         subdataset.set_index("Patient", drop=True, append=False, inplace=True)
         # subdataset.index = subdataset["Patient"]
-        #subdataset = subdataset.drop(type_level["__csvIndex"], axis=1)
+        subdataset = subdataset.drop(type_level["__csvIndex"], axis=1)
+        return subdataset
 
     def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
         return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable) for datype in
-                DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
-        return subdataset
+                DATA_PROPS_EXPRESSION.keys() for level in DATA_PROPS_EXPRESSION[datype] if "_" not in level}
 
     def generateDataDict(self):
         self.dataDict = self.getDataDict()
