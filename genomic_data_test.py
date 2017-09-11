@@ -2,6 +2,8 @@
 import numpy as np
 import pandas as pd
 import pickle
+import sys
+
 from sklearn import decomposition
 from sklearn.feature_selection import SelectPercentile
 from sklearn.model_selection import cross_validate
@@ -188,76 +190,76 @@ f.close()
 
 
 
-### EXPERIMENTAL
-
-scl.transform(vec)
-for scaler in ppscalers:
-    print("*" * 80)
-    print(scaler.__name__)
-    cv = cross_val_function(*microarray_prepare_data(MA_probe, MA_probe, MA_gene_output, scaler))
-    report(cv)
-
-report(cross_val_function(*microarray_prepare_data(MA_gene, MA_probe, MA_gene_output)))
-
-cv_m = cross_validate(pipeline_factory(GaussianNB()), Xr, yr,
-                      scoring=["accuracy", "recall", "f1", "neg_log_loss", "precision", "roc_auc"], cv=10)
-
-import matplotlib.pyplot as plt
-from numpy import where
-
-pca = decomposition.PCA(n_components=100)
-X_pca = pca.fit_transform(X, y)
-
-sp = SelectPercentile(percentile=30)
-sp.fit(X, y)
-sig = where(sp.pvalues_ < 0.01)
-
-len(sig[0])
-
-X_sig = X[:, sig[0]]
-X_sig.shape
-
-
-def plot_pca(pca, colors, y_ids, y_labels, plot_title, plotkwargs, legendkwargs={}):
-    fig = plt.figure()
-    for color, i, target_name in zip(cokm.
-                                             lors, y_ids, y_labels):
-        plot_args = plotkwargs(color=color, target_name=target_name)
-        plt.scatter(X_pca[y == i, 0], X_pca[y == i, 1], **plot_args)
-    plt.legend(**legendkwargs)
-    plt.title(plot_title)
-    return fig
-
-
-pca = decomposition.PCA(n_components=50)
-pca.explained_variance_ratio_
-X_pca = pca.fit_transform(X_sig, y)
-
-plot_args = lambda color, target_name: dict(color=color, alpha=.8, lw=2, label=target_name)
-legend_args = dict(loc='best', shadow=False, scatterpoints=1)
-
-plot_pca(pca, ['red', 'green'], [0, 1], ['False', 'True'], "PCA", legendkwargs=legend_args, plotkwargs=plot_args)
-
-from sklearn.cluster.k_means_ import KMeans
-from scipy.stats import rankdata
-from mpl_toolkits.mplot3d import Axes3D
-from numpy import concatenate, array
-
-km = KMeans(n_clusters=2)
-km.fit(X_sig, y)
-y_pred = km.predict(X_sig)
-
-rank = rankdata(sp.pvalues_, "ordinal")
-colors = ["red", "green", "blue", "yellow", "pink", "black"]
-fig = plt.figure()
-ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
-ax.scatter(X[:, rank[0]], X[:, rank[1]], X[:, rank[2]], c=y_pred)
-plt.title("Incorrect Number of Blobs")
-
-features = concatenate((X[:, rank[:4]], array(y_pred).reshape((428, 1)), array(y).reshape((428, 1))), axis=1)
-
-df = pd.DataFrame(features[:, [4, 5]]).groupby(0).hist()
-
+# ### EXPERIMENTAL
+#
+# scl.transform(vec)
+# for scaler in ppscalers:
+#     print("*" * 80)
+#     print(scaler.__name__)
+#     cv = cross_val_function(*microarray_prepare_data(MA_probe, MA_probe, MA_gene_output, scaler))
+#     report(cv)
+#
+# report(cross_val_function(*microarray_prepare_data(MA_gene, MA_probe, MA_gene_output)))
+#
+# cv_m = cross_validate(pipeline_factory(GaussianNB()), Xr, yr,
+#                       scoring=["accuracy", "recall", "f1", "neg_log_loss", "precision", "roc_auc"], cv=10)
+#
+# import matplotlib.pyplot as plt
+# from numpy import where
+#
+# pca = decomposition.PCA(n_components=100)
+# X_pca = pca.fit_transform(X, y)
+#
+# sp = SelectPercentile(percentile=30)
+# sp.fit(X, y)
+# sig = where(sp.pvalues_ < 0.01)
+#
+# len(sig[0])
+#
+# X_sig = X[:, sig[0]]
+# X_sig.shape
+#
+#
+# def plot_pca(pca, colors, y_ids, y_labels, plot_title, plotkwargs, legendkwargs={}):
+#     fig = plt.figure()
+#     for color, i, target_name in zip(cokm.
+#                                              lors, y_ids, y_labels):
+#         plot_args = plotkwargs(color=color, target_name=target_name)
+#         plt.scatter(X_pca[y == i, 0], X_pca[y == i, 1], **plot_args)
+#     plt.legend(**legendkwargs)
+#     plt.title(plot_title)
+#     return fig
+#
+#
+# pca = decomposition.PCA(n_components=50)
+# pca.explained_variance_ratio_
+# X_pca = pca.fit_transform(X_sig, y)
+#
+# plot_args = lambda color, target_name: dict(color=color, alpha=.8, lw=2, label=target_name)
+# legend_args = dict(loc='best', shadow=False, scatterpoints=1)
+#
+# plot_pca(pca, ['red', 'green'], [0, 1], ['False', 'True'], "PCA", legendkwargs=legend_args, plotkwargs=plot_args)
+#
+# from sklearn.cluster.k_means_ import KMeans
+# from scipy.stats import rankdata
+# from mpl_toolkits.mplot3d import Axes3D
+# from numpy import concatenate, array
+#
+# km = KMeans(n_clusters=2)
+# km.fit(X_sig, y)
+# y_pred = km.predict(X_sig)
+#
+# rank = rankdata(sp.pvalues_, "ordinal")
+# colors = ["red", "green", "blue", "yellow", "pink", "black"]
+# fig = plt.figure()
+# ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
+# ax.scatter(X[:, rank[0]], X[:, rank[1]], X[:, rank[2]], c=y_pred)
+# plt.title("Incorrect Number of Blobs")
+#
+# features = concatenate((X[:, rank[:4]], array(y_pred).reshape((428, 1)), array(y).reshape((428, 1))), axis=1)
+#
+# df = pd.DataFrame(features[:, [4, 5]]).groupby(0).hist()
+#
 
 
 
