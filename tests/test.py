@@ -71,7 +71,7 @@ def run_traning(dataframefilename, removeClinical=False):
     for model in models:
         modelTrain(x, y, method = model)
         
-def run_traning_joiningFiles(dataframefiles, useClinical=False):
+def run_traning_joiningFiles(dataframefiles, useClinical=False, saveToFile=''):
     x = None
     y = None
     clinical = None
@@ -91,11 +91,16 @@ def run_traning_joiningFiles(dataframefiles, useClinical=False):
     if useClinical:
         x = pd.concat([x, clinical], axis=1)
     
+    if saveToFile:
+        z = pd.concat([x,clinical], axis=1)
+        z = pd.concat([z,y], axis=1)
+        z.to_csv(saveToFile)
+    
     x = preprocess(x, 'scaler')
     x = featureSelection(x, y, percentile = 40)
     
     #models = ['knn', 'nbayes', 'decisionTree', 'logisticRegression', 'svm', 'nnet', 'rand_forest', 'bagging']
-    models = ['svm', 'nnet']
+    models = ['nnet']
 
     # Test models
     for model in models:
@@ -104,9 +109,12 @@ def run_traning_joiningFiles(dataframefiles, useClinical=False):
 if __name__ == '__main__':
     #create_csv_from_data()
     #run_traning("/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv", removeClinical=True)
+    
     dataframefiles = ['/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv',
                       '/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv', 
                       '/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
+                      
+    #dataframefiles = ['/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv']
     run_traning_joiningFiles(dataframefiles, True)
     
     

@@ -139,7 +139,7 @@ def modelTrain(values, outputVector, method = "knn", cv = 10, testVals = None):
     elif method == "svm":
         estimator = SVC(kernel = "linear", C = 1, probability = True, gamma = 0.0001)
     elif method == 'nnet':
-        estimator = MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (90,), alpha = 0.9)
+        estimator = MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (250,), alpha = 0.001)
     elif method == 'rand_forest':
         estimator = RandomForestClassifier(max_depth = 5, criterion = "entropy", n_estimators = 100)
     elif method == 'bagging':
@@ -326,7 +326,7 @@ def testingRNASeq (featSel = True, perc = 40, preprocessing = True, method = 'lo
 # print('\n ========= SCALER PREPROCESSING ========= \n')
 # testingRNASeq(featSel = True, perc = 40, preprocessing = True, method = 'scaler')
 print('\n ========= LOGARITHM PREPROCESSING ========= \n')
-testingRNASeq(featSel = True, perc = 40, preprocessing = True, method = 'log')
+#testingRNASeq(featSel = True, perc = 40, preprocessing = True, method = 'log')
 
 
 

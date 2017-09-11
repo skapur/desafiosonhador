@@ -2,6 +2,7 @@ import os.path as path
 import pandas as pd
 import numpy as np
 import multiprocessing
+import sys
 from readers.vcfreader import VCFReader
 
 SAMP_ID_NAME = "SamplId"
@@ -13,21 +14,13 @@ DATA_PROPS = {
     "RNASeq": {
         "trans": "RNASeq_transLevelExpFile",
         "gene": "RNASeq_geneLevelExpFile"
-    },
-    "Genomic": {
-        "MuTectsnvs": {
-                "__path": "MuTect2 SnpSift Annotated vcfs",
-                "__csvIndex": "WES_mutationFileMutect"
-                },
-        "StrelkaIndels": {
-                "__path": "Strelka SnpSift Annotated vcfs/indels",
-                "__csvIndex": "WES_mutationFileStrelkaIndel"
-            },
-        "Strelkasnvs": {
-            "__path": "Strelka SnpSift Annotated vcfs/snvs",
-            "__csvIndex": "WES_mutationFileStrelkaSNV"
-            }
     }
+}
+
+GENOMIC_PROPS = {
+    "MuTectsnvs" : "WES_mutationFileMutect",
+    "StrelkaIndels" : "WES_mutationFileStrelkaIndel",
+    "Strelkasnvs" : "WES_mutationFileStrelkaSNV"
 }
 
 
@@ -63,11 +56,12 @@ class MMChallengeData(object):
         df.index = subcd["Patient"]
         return df, subcd[clinicalVariables], subcd[outputVariable]
 
-    def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="", directoryFolder='/test-data/'):
-        type_level = DATA_PROPS[datype][level]
-        subdataset = self.clinicalData[["Patient", type_level["__csvIndex"]] + clinicalVariables + [outputVariable]]
+    def getDataFrame(self, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="", directoryFolder='/test-data/'):
+        subdataset = self.clinicalData[["Patient", GENOMIC_PROPS[level]] + clinicalVariables + [outputVariable]]
         reader = VCFReader()
-        filenames = self.clinicalData[type_level["__csvIndex"]].dropna().unique()
+        filenames = self.clinicalData[GENOMIC_PROPS[level]].dropna().unique()
+        if not filenames:
+            return None
         paths = [ path.join(directoryFolder, f) for f in filenames]
         vcfdict =  { k : v for k, v in zip(filenames, self.__executor.map(reader.readVCFFile, paths))}
         vcfdataframe = pd.DataFrame(vcfdict)
@@ -75,14 +69,114 @@ class MMChallengeData(object):
         vcfdataframe.fillna(value=0, inplace=True)
         if savesubdataframe:
             vcfdataframe.to_csv(savesubdataframe)
-        subdataset.set_index(type_level["__csvIndex"], drop=False, append=False, inplace=True)
+        subdataset.set_index(GENOMIC_PROPS[level], drop=False, append=False, inplace=True)
         subdataset = subdataset.join(vcfdataframe)
 
         subdataset = subdataset.loc[pd.notnull(subdataset.index)]
         subdataset.set_index("Patient", drop=True, append=False, inplace=True)
         #subdataset.index = subdataset["Patient"]
-        subdataset = subdataset.drop(type_level["__csvIndex"], axis=1)
+        subdataset = subdataset.drop(GENOMIC_PROPS[level], axis=1)
         return subdataset
+    
+    def get_X_Y_FromDataframe(self, df, removeClinical=False):
+        df = df.fillna(value=0)
+    
+        df = df[df["HR_FLAG"] != "CENSORED"]
+        y = df["HR_FLAG"] == "TRUE"
+        x = df.drop("HR_FLAG", axis=1)
+    
+        clinical = x[["D_Age", "D_ISS"]]
+    
+        if removeClinical:
+            x = x.drop("D_Age", axis=1)
+            x = x.drop("D_ISS", axis=1)
+        return x, y, clinical
+    
+    def preprocessPrediction(self, useClinical=True, savePreprocessingDirectory='', directoryFolder='/test-data/'):
+        muctectCSV = ''
+        strelkaIndelsCSV = ''
+        strelkasnvsCSV = ''
+        if savePreprocessingDirectory:
+            muctectCSV = path.join(savePreprocessingDirectory, "MuTectsnvs_joined.csv")
+            strelkaIndelsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
+            strelkasnvsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
+            
+        mucDF = self.getDataFrame("MuTectsnvs", savesubdataframe=muctectCSV, directoryFolder=directoryFolder)
+        strelkaInDF = self.getDataFrame("StrelkaIndels", savesubdataframe=strelkaIndelsCSV, directoryFolder=directoryFolder)
+        streklaSnDF = self.getDataFrame("Strelkasnvs", savesubdataframe=strelkasnvsCSV, directoryFolder=directoryFolder)
+        
+        if mucDF != None and strelkaInDF != None and streklaSnDF != None:
+            x, y, clinical = self.get_X_Y_FromDataframe(mucDF)
+
+            x2, y2, clinical2 = self.get_X_Y_FromDataframe(strelkaInDF)
+            x = pd.concat([x, x2], axis=1)
+            y = pd.concat([y, y2])
+            clinical = pd.concat([clinical, clinical2])
+            
+            x3, y3, clinical3 = self.get_X_Y_FromDataframe(streklaSnDF)
+            x = pd.concat([x, x3], axis=1)
+            y = pd.concat([y, y3])
+            clinical = pd.concat([clinical, clinical3])
+    
+            x = x.groupby(x.columns, axis=1).sum()
+            y = y.groupby(y.index).first()
+            clinical = clinical.groupby(clinical.index).first()
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            
+            return x, y, 'ALL'
+        
+        elif mucDF != None:
+            x, y, clinical = self.get_X_Y_FromDataframe(mucDF)
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            return x, y, 'MUC'
+        
+        elif strelkaInDF != None and streklaSnDF != None:
+            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
+            x2, y2, clinical2 = self.get_X_Y_FromDataframe(streklaSnDF)
+            x = pd.concat([x, x2], axis=1)
+            y = pd.concat([y, y2])
+            clinical = pd.concat([clinical, clinical2])
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            
+            return x, y, 'STR_ALL'
+        
+        elif strelkaInDF != None:
+            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            return x, y, 'STR_IN'
+        
+        elif streklaSnDF != None:
+            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            return x, y, 'STR_SN'
+        else:
+            print('The input challenge file is not been read correctly!')
+        
+    def df_reduce(self, X, y, scaler = None, fts = None, fit = True, filename = None):
+        import pickle
+        if fit:
+            scaler.fit(X, y); X = scaler.transform(X)
+            fts.fit(X, y); X = fts.transform(X)
+            if filename is not None: # save the objects to disk
+                f = open(filename, 'wb')
+                pickle.dump({'scaler': scaler, 'fts': fts}, f)
+                f.close()
+        else:
+            try: # load the objects from disk
+                f = open(filename, 'rb')
+                dic = pickle.load(f)
+                scaler = dic['scaler']; fts = dic['fts']
+                f.close()
+                X = scaler.transform(X); X = fts.transform(X)
+            except:
+                print ("Unexpected error:", sys.exc_info()[0])
+                raise
+        return X, y, fts.get_support(True)
 
     def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
         return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
