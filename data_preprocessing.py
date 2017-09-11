@@ -123,6 +123,15 @@ class MMChallengeData(object):
 
 class MMChallengePredictor(object):
 
+    def __init__(self, mmcdata, predict_fun, confidence_fun, data_types, single_vector_apply_fun=lambda x: x,
+                 multiple_vector_apply_fun = lambda x: x , predictor_name="Default Predictor"):
+        self.data_dict = mmcdata.dataDict
+        self.data_presence = mmcdata.dataPresence
+        self.clinical_data = mmcdata.clinicalData
+        self.predictor_name = predictor_name
+        self.predict_fun = predict_fun
+        self.confidence_fun = confidence_fun
+
     def predict_case(self, index):
         hasCorrectData = self.data_presence.loc[index, self.data_types]
         # print(hasCorrectData)
