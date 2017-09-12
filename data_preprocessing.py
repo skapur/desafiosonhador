@@ -4,7 +4,7 @@ import numpy as np
 import multiprocessing
 from readers.vcfreader import VCFReader
 
-GCT_NAME = "globalClinTraining.csv"
+GCT_NAME = "sc2_Training_ClinAnnotations.csv"
 SAMP_ID_NAME = "SamplId"
 
 DATA_PROPS_EXPRESSION = {
@@ -60,9 +60,10 @@ class MMChallengeData(object):
         type_level = DATA_PROPS_EXPRESSION[datype][level]
         type_level_sid = type_level + SAMP_ID_NAME
         baseCols = ["Patient", type_level, type_level_sid]
-        subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(subset=baseCols)
+        subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(axis=0, subset=[type_level_sid])
+        # print("Clinical data")
+        # print(subcd.index.shape)
         dfiles = subcd[type_level].dropna().unique()
-        print(dfiles)
         dframes = [pd.read_csv(
             path.join(self.__parentFolder, DATA_PROPS_EXPRESSION[datype]["__dataparentfolder"], DATA_PROPS_EXPRESSION[datype]["__datafolder"],
                       dfile),
@@ -73,9 +74,13 @@ class MMChallengeData(object):
         else:
             df = dframes[0]
 
+        # print("Dataframe:")
+        # print(df.index.shape)
         df = df.loc[subcd[type_level_sid], :]
         df.index = subcd["Patient"]
-        return df, subcd[clinicalVariables], subcd[outputVariable]
+        df = df.dropna(axis=0, how='all')
+        df = df.dropna(axis=1, how='any')
+        return df, subcd.loc[df.index,clinicalVariables], subcd.loc[df.index,outputVariable]
 
     def getDataFrame(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG",
                      savesubdataframe=""):
