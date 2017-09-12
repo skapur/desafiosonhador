@@ -119,7 +119,7 @@ class MMChallengeData(object):
         strelkasnvsCSV = ''
         if savePreprocessingDirectory:
             muctectCSV = path.join(savePreprocessingDirectory, "MuTectsnvs_joined.csv")
-            strelkaIndelsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
+            strelkaIndelsCSV = path.join(savePreprocessingDirectory, "StrelkaIndels_joined.csv")
             strelkasnvsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
             
         mucDF = self.getDataFrame("MuTectsnvs", outputVariable=outputVariable, savesubdataframe=muctectCSV, directoryFolder=directoryFolder)

@@ -11,10 +11,12 @@ import pickle
 from initial_file_telma import preprocess, featureSelection, modelTrain
 
 def create_csv_from_data():
-    patha = '/home/dreamchallenge/synapse/syn7222203';
+    patha = '/home/dreamchallenge/synapse/syn7222203/Clinical Data/globalClinTraining.csv';
     mmcd = MMChallengeData(patha)
-    df = mmcd.getDataFrame("Genomic", "Strelkasnvs", savesubdataframe='/home/dreamchallenge/synapse/syn7222203/Strelkasnvs.csv')
-    df.to_csv("/home/dreamchallenge/synapse/syn7222203/Strelkasnvs_joined.csv")
+    x,y, modeltype = mmcd.preprocessPrediction(savePreprocessingDirectory = "/home/dreamchallenge/", directoryFolder="/home/dreamchallenge/link-data/")
+    print(modeltype)
+    df = pd.concat([x, y], axis=1)
+    df.to_csv("/home/dreamchallenge/synapse/ALL_joined.csv")
 
 def create_csv_from_data2():
     df1 = DataFrame.from_csv('/home/tiagoalves/rrodrigues/globalClinTraining.csv')
@@ -115,20 +117,21 @@ def run_traning_joiningFiles(dataframefiles, useClinical=False, saveToFile='', d
         
     
 if __name__ == '__main__':
-    #create_csv_from_data()
+    create_csv_from_data()
     #run_traning("/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv", removeClinical=True)
     '''
     dataframefiles = ['/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv',
                       '/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv', 
                       '/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
-    '''           
-    
-    dataframefiles = ['/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
+              
+    '''
+    #dataframefiles = ['/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
     #dataframefiles = '/home/tiagoalves/rrodrigues/test.csv'
+    '''
     run_traning_joiningFiles(dataframefiles, useClinical=True, doCV=True, 
-                             saveTransformerFile='/home/tiagoalves/rrodrigues/StrelkaIndels_Transformer_CH1.pkl',
-                             saveClassifierFile='/home/tiagoalves/rrodrigues/StrelkaIndels_Classifier_CH1.pkl')
-    
+                             saveTransformerFile='/home/tiagoalves/rrodrigues/ALL_Transformer_CH1.pkl',
+                             saveClassifierFile='/home/tiagoalves/rrodrigues/ALL_Classifier_CH1.pkl')
+    '''
     
 
     
