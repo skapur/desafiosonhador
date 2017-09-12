@@ -27,7 +27,8 @@ def main(argv):
     mod_rseq = MMChallengePredictor(
             mmcdata = mmcd,
             predict_fun = lambda x: clf_rseq.predict(x)[0],
-            confidence_fun = lambda x: 1 - min(clf_rseq.predict_proba(x)[0]),
+            # confidence_fun = lambda x: 1 - min(clf_rseq.predict_proba(x)[0]),
+            confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
             data_types = [("RNASeq", "gene"), ("RNASeq", "trans")],
             single_vector_apply_fun = lambda x: x,
             multiple_vector_apply_fun = mv_fun_rseq
@@ -50,13 +51,13 @@ def main(argv):
     mod_marryas = MMChallengePredictor(
                 mmcdata = mmcd,
                 predict_fun = lambda x: clf_marrays.predict(x)[0],
-                confidence_fun = lambda x: 1 - min(clf_marrays.predict_proba(x)[0]),
+                confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
                 data_types = [("MA", "gene")],
                 single_vector_apply_fun = mv_fun,
                 multiple_vector_apply_fun = lambda x: x
     )
     res_marrays = mod_marryas.predict_dataset()
-
+    
     #Final dataset
     final_res = res_rseq.combine_first(res_marrays)
     final_res.columns = ['study', 'patient', 'predictionscore', 'highriskflag']
