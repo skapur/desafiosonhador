@@ -62,9 +62,10 @@ class MMChallengeData(object):
         type_level = DATA_PROPS[datype][level]
         type_level_sid = type_level + SAMP_ID_NAME
         baseCols = ["Patient", type_level, type_level_sid]
-        subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(subset=baseCols)
+        subcd = self.clinicalData[baseCols + clinicalVariables + [outputVariable]].dropna(axis=0, subset=[type_level_sid])
+        # print("Clinical data")
+        # print(subcd.index.shape)
         dfiles = subcd[type_level].dropna().unique()
-        print(dfiles)
         dframes = [pd.read_csv(path.join(directoryFolder, dfile),
                                index_col=[0], sep = sep).T for dfile in dfiles]
 
@@ -75,7 +76,9 @@ class MMChallengeData(object):
 
         df = df.loc[subcd[type_level_sid], :]
         df.index = subcd["Patient"]
-        return df, subcd[clinicalVariables], subcd[outputVariable]
+        df = df.dropna(axis=0, how='all')
+        df = df.dropna(axis=1, how='any')
+        return df, subcd.loc[df.index,clinicalVariables], subcd.loc[df.index,outputVariable]
 
     def getDataFrame(self, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="", directoryFolder='/test-data/'):
         subdataset = self.clinicalData[["Patient", GENOMIC_PROPS[level]] + clinicalVariables + [outputVariable]]
