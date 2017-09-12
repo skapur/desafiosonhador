@@ -16,7 +16,7 @@ def create_csv_from_data():
     x,y, modeltype = mmcd.preprocessPrediction(savePreprocessingDirectory = "/home/dreamchallenge/", directoryFolder="/home/dreamchallenge/link-data/")
     print(modeltype)
     df = pd.concat([x, y], axis=1)
-    df.to_csv("/home/dreamchallenge/synapse/ALL_joined.csv")
+    df.to_csv("/home/dreamchallenge/ALL_joined.csv")
 
 def create_csv_from_data2():
     df1 = DataFrame.from_csv('/home/tiagoalves/rrodrigues/globalClinTraining.csv')
@@ -88,17 +88,22 @@ def joindataframes(dataframefiles, useClinical=False, saveToFile=''):
     
     return x,y
         
-def run_traning_joiningFiles(dataframefiles, useClinical=False, saveToFile='', doCV=True, saveTransformerFile='', saveClassifierFile=''):
+def run_traning_joiningFiles(dataframefiles, useClinical=False, saveToFile='', doCV=True, saveDictFile='', saveTransformerFile='', saveClassifierFile=''):
     #processingData = MMChallengeData(dataframefiles);
     #x, y, modeltype = processingData.preprocessPrediction(directoryFolder ="/home/tiagoalves/rrodrigues/");
     #print(modeltype)
-    x, y = joindataframes(dataframefiles, useClinical, saveToFile)
-    x = preprocess(x, 'scaler')
-    x = featureSelection(x, y, percentile = 40)
+    x1, y = joindataframes(dataframefiles, useClinical, saveToFile)
+    #x1 = preprocess(x1, 'scaler')
+    #x1 = featureSelection(x1, y, percentile = 40)
 
     scaler = StandardScaler()
     fts = SelectPercentile(percentile=40)
-    x, y, z = df_reduce(x, y, scaler, fts, True, saveTransformerFile)
+    x, y, z = df_reduce(x1, y, scaler, fts, True, saveTransformerFile)
+
+    if saveDictFile:
+        f = open(saveDictFile, 'wb')
+        pickle.dump(x1.columns,f)
+        f.close()
 
     if doCV:
         #models = ['knn', 'nbayes', 'decisionTree', 'logisticRegression', 'svm', 'nnet', 'rand_forest', 'bagging']
@@ -117,21 +122,22 @@ def run_traning_joiningFiles(dataframefiles, useClinical=False, saveToFile='', d
         
     
 if __name__ == '__main__':
-    create_csv_from_data()
+    #create_csv_from_data()
     #run_traning("/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv", removeClinical=True)
-    '''
-    dataframefiles = ['/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv',
-                      '/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv', 
-                      '/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
+    
+    dataframefiles = ['/home/tiagoalves/rrodrigues/tableFiles/MuTectsnvs_joined.csv',
+                      '/home/tiagoalves/rrodrigues/tableFiles/Strelkasnvs_joined.csv', 
+                      '/home/tiagoalves/rrodrigues/tableFiles/StrelkaIndels_joined.csv']
               
     '''
     #dataframefiles = ['/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
     #dataframefiles = '/home/tiagoalves/rrodrigues/test.csv'
     '''
-    run_traning_joiningFiles(dataframefiles, useClinical=True, doCV=True, 
+    run_traning_joiningFiles(dataframefiles, useClinical=True, doCV=True,
+                             saveDictFile='/home/tiagoalves/rrodrigues/ALL_featColumns_CH1.pkl',
                              saveTransformerFile='/home/tiagoalves/rrodrigues/ALL_Transformer_CH1.pkl',
                              saveClassifierFile='/home/tiagoalves/rrodrigues/ALL_Classifier_CH1.pkl')
-    '''
+    
     
 
     

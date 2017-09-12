@@ -30,7 +30,7 @@ def log_preprocessing(df):
 def df_reduce(X, y, scaler = None, fts = None, fit = True, filename = None):
     import pickle
     if fit:
-        scaler.fit(X, y); X = scaler.transform(X)
+        scaler.fit(X, y); X = scaler.transform(X) 
         fts.fit(X, y); X = fts.transform(X)
         if filename is not None: # save the objects to disk
             f = open(filename, 'wb')
@@ -81,6 +81,7 @@ class MMChallengeData(object):
         return df, subcd.loc[df.index,clinicalVariables], subcd.loc[df.index,outputVariable]
 
     def getDataFrame(self, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="", directoryFolder='/test-data/'):
+        if outputVariable in clinicalVariables: clinicalVariables.remove(outputVariable)
         subdataset = self.clinicalData[["Patient", GENOMIC_PROPS[level]] + clinicalVariables + [outputVariable]]
         reader = VCFReader()
         filenames = self.clinicalData[GENOMIC_PROPS[level]].dropna().unique()
@@ -91,8 +92,6 @@ class MMChallengeData(object):
         vcfdataframe = pd.DataFrame(vcfdict)
         vcfdataframe = vcfdataframe.T
         vcfdataframe.fillna(value=0, inplace=True)
-        if savesubdataframe:
-            vcfdataframe.to_csv(savesubdataframe)
         subdataset.set_index(GENOMIC_PROPS[level], drop=False, append=False, inplace=True)
         subdataset = subdataset.join(vcfdataframe)
 
@@ -100,22 +99,27 @@ class MMChallengeData(object):
         subdataset.set_index("Patient", drop=True, append=False, inplace=True)
         #subdataset.index = subdataset["Patient"]
         subdataset = subdataset.drop(GENOMIC_PROPS[level], axis=1)
+        if savesubdataframe:
+            subdataset.to_csv(savesubdataframe)
         return subdataset
-
-    def get_X_Y_FromDataframe(self, df, removeClinical=False):
+    
+    def get_X_Y_FromDataframe(self, df, removeClinical=True, outputVariable="HR_FLAG"):
         df = df.fillna(value=0)
-
-        df = df[df["HR_FLAG"] != "CENSORED"]
-        y = df["HR_FLAG"] == "TRUE"
-        x = df.drop("HR_FLAG", axis=1)
-
+        if outputVariable == "HR_FLAG":
+            df = df[df["HR_FLAG"] != "CENSORED"]
+            y = df["HR_FLAG"] == "TRUE"
+            x = df.drop("HR_FLAG", axis=1)
+        else:
+            x = df
+            y = df[outputVariable]
+    
         clinical = x[["D_Age", "D_ISS"]]
-
+    
         if removeClinical:
             x = x.drop("D_Age", axis=1)
             x = x.drop("D_ISS", axis=1)
         return x, y, clinical
-
+    
     def preprocessPrediction(self, useClinical=True, outputVariable="HR_FLAG", savePreprocessingDirectory='', directoryFolder='/test-data/'):
         muctectCSV = ''
         strelkaIndelsCSV = ''
@@ -124,57 +128,62 @@ class MMChallengeData(object):
             muctectCSV = path.join(savePreprocessingDirectory, "MuTectsnvs_joined.csv")
             strelkaIndelsCSV = path.join(savePreprocessingDirectory, "StrelkaIndels_joined.csv")
             strelkasnvsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
-
+            
         mucDF = self.getDataFrame("MuTectsnvs", outputVariable=outputVariable, savesubdataframe=muctectCSV, directoryFolder=directoryFolder)
         strelkaInDF = self.getDataFrame("StrelkaIndels", outputVariable=outputVariable, savesubdataframe=strelkaIndelsCSV, directoryFolder=directoryFolder)
         streklaSnDF = self.getDataFrame("Strelkasnvs", outputVariable=outputVariable, savesubdataframe=strelkasnvsCSV, directoryFolder=directoryFolder)
-
+        
         if mucDF is not None and strelkaInDF is not None and streklaSnDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(mucDF)
+            x, y, clinical = self.get_X_Y_FromDataframe(mucDF, outputVariable=outputVariable)
 
-            x2, y2, clinical2 = self.get_X_Y_FromDataframe(strelkaInDF)
+            x2, y2, clinical2 = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable=outputVariable)
             x = pd.concat([x, x2], axis=1)
             y = pd.concat([y, y2])
             clinical = pd.concat([clinical, clinical2])
-
-            x3, y3, clinical3 = self.get_X_Y_FromDataframe(streklaSnDF)
+            
+            x3, y3, clinical3 = self.get_X_Y_FromDataframe(streklaSnDF, outputVariable=outputVariable)
             x = pd.concat([x, x3], axis=1)
             y = pd.concat([y, y3])
             clinical = pd.concat([clinical, clinical3])
-
+    
             x = x.groupby(x.columns, axis=1).sum()
             y = y.groupby(y.index).first()
             clinical = clinical.groupby(clinical.index).first()
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
-
+            
             return x, y, 'ALL'
-
+        
         elif mucDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(mucDF)
+            x, y, clinical = self.get_X_Y_FromDataframe(mucDF, outputVariable=outputVariable)
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
             return x, y, 'MUC'
-
+        
         elif strelkaInDF is not None and streklaSnDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
-            x2, y2, clinical2 = self.get_X_Y_FromDataframe(streklaSnDF)
+            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable=outputVariable)
+            x2, y2, clinical2 = self.get_X_Y_FromDataframe(streklaSnDF, outputVariable=outputVariable)
             x = pd.concat([x, x2], axis=1)
             y = pd.concat([y, y2])
             clinical = pd.concat([clinical, clinical2])
+
+            x = x.groupby(x.columns, axis=1).sum()
+            y = y.groupby(y.index).first()
+            clinical = clinical.groupby(clinical.index).first()
+
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
-
+            
             return x, y, 'STR_ALL'
-
+        
         elif strelkaInDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
+            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable)
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
             return x, y, 'STR_IN'
-
+        
         elif streklaSnDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF)
+            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable)
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
             return x, y, 'STR_SN'
@@ -184,7 +193,7 @@ class MMChallengeData(object):
 
     def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
         return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
-
+        
     def generateDataDict(self):
         self.dataDict = self.getDataDict()
         self.dataPresence = self.__generateDataTypePresence()
@@ -197,7 +206,6 @@ class MMChallengeData(object):
         return pd.DataFrame({pair: self.clinicalData.index.isin(df[0].index) for pair, df in self.dataDict.items()},index=self.clinicalData.index)
 
 class MMChallengePredictor(object):
-    
 
     def __init__(self, mmcdata, predict_fun, confidence_fun, data_types, single_vector_apply_fun=lambda x: x,
                 multiple_vector_apply_fun=lambda x: x, predictor_name="Default Predictor"):
@@ -231,14 +239,14 @@ class MMChallengePredictor(object):
             flag, score = np.nan, np.nan
         row = row + [score, flag]
         return row
-
+    
     def predict_dataset(self):
         columns = ["study","patient",'_'.join(["predictionscore",self.predictor_name]),'_'.join(["highriskflag",self.predictor_name])]
         rows = [self.get_pred_df_row(case) for case in self.clinical_data.index]
         df = pd.DataFrame(rows)
         df.columns = columns
         return pd.DataFrame(df)
-
+    
     def get_feature_vector(self, index):
         frame = None
         if len(self.data_types) > 1:
