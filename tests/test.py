@@ -99,10 +99,10 @@ def run_traning_joiningFiles(dataframefiles, useClinical=False, saveToFile='', d
     scaler = StandardScaler()
     fts = SelectPercentile(percentile=40)
     x, y, z = df_reduce(x1, y, scaler, fts, True, saveTransformerFile)
-    
+
     if saveDictFile:
         f = open(saveDictFile, 'wb')
-        pickle.dump(x1.columns[z],f)
+        pickle.dump(x1.columns,f)
         f.close()
 
     if doCV:

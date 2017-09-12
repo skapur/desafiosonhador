@@ -64,7 +64,7 @@ def main(argv):
     intersect = list(intersect)
     
     xintersected = x[intersect]
-    xintersected.assign(**{k:0 for k in onlyinfeat})
+    xintersected = xintersected.assign(**{k:0 for k in onlyinfeat})
     #for l in onlyinfeat:
     #    xintersected.loc[:, l] = 0
     

@@ -23,9 +23,9 @@ class VCFReader(object):
                         genetoscore[gene_instance] = genetoscore[gene_instance] + score_instance
                     else:
                         genetoscore[gene_instance] = score_instance
-            else:
-                print(record)
-                print('File: '+filename+" don't have ANN entry")
+            #else:
+                #print(record)
+                #print('File: '+filename+" don't have ANN entry")
         return genetoscore
     
     def readFiles(self, files):
