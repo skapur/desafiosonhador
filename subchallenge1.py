@@ -6,24 +6,29 @@ import pickle
 
 trained_Models = {
     'ALL' : {
-        "__transformerFilename" : "ALL_Transformer_CH1.pkl",
-        "__classifierFilename" : "ALL_Classifier_CH1.pkl" 
+        "__columnsDic" : "/ALL_featColumns_CH1.pkl",
+        "__transformerFilename" : "/ALL_Transformer_CH1.pkl",
+        "__classifierFilename" : "/ALL_Classifier_CH1.pkl" 
         },
     'MUC' : {
-        "__transformerFilename" : "MuTectsnvs_Transformer_CH1.pkl",
-        "__classifierFilename" : "MuTectsnvs_Classifier_CH1.pkl" 
+        "__columnsDic" : "/MuTectsnvs_featColumns_CH1.pkl",
+        "__transformerFilename" : "/MuTectsnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "/MuTectsnvs_Classifier_CH1.pkl" 
         },
     'STR_ALL' : {
-        "__transformerFilename" : "Strelka_Transformer_CH1.pkl",
-        "__classifierFilename" : "Strelka_Classifier_CH1.pkl" 
+        "__columnsDic" : "/Strelka_featColumns_CH1.pkl",
+        "__transformerFilename" : "/Strelka_Transformer_CH1.pkl",
+        "__classifierFilename" : "/Strelka_Classifier_CH1.pkl" 
         },
     'STR_IN' : {
-        "__transformerFilename" : "StrelkaIndels_Transformer_CH1.pkl",
-        "__classifierFilename" : "StrelkaIndels_Classifier_CH1.pkl" 
+        "__columnsDic" : "/StrelkaIndels_featColumns_CH1.pkl",
+        "__transformerFilename" : "/StrelkaIndels_Transformer_CH1.pkl",
+        "__classifierFilename" : "/StrelkaIndels_Classifier_CH1.pkl" 
         },
     'STR_SN' : {
-        "__transformerFilename" : "Strelkasnvs_Transformer_CH1.pkl",
-        "__classifierFilename" : "Strelkasnvs_Classifier_CH1.pkl" 
+        "__columnsDic" : "/Strelkasnvs_featColumns_CH1.pkl",
+        "__transformerFilename" : "/Strelkasnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "/Strelkasnvs_Classifier_CH1.pkl" 
         }          
     }
 
@@ -46,13 +51,33 @@ def main(argv):
     
     processingData = processor.MMChallengeData(inputfile);
     x, y, modelType = processingData.preprocessPrediction(outputVariable="D_Age");
+    
+    f = open(trained_Models[modelType]["__columnsDic"], 'rb')
+    featColumns = pickle.load(f);
+    f.close();
+
+    featColumns = set(featColumns)
+    presentColumns = set(x.columns)
+    
+    intersect = featColumns & presentColumns
+    onlyinfeat = list(set(featColumns - intersect))
+    intersect = list(intersect)
+    
+    xintersected = x[intersect]
+    xintersected.assign(**{k:0 for k in onlyinfeat})
+    #for l in onlyinfeat:
+    #    xintersected.loc[:, l] = 0
+    
+    x = xintersected
+
     x, y = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
     
     processingData.dataDict = {"genomic" : (x,[],y) }
     processingData.__generateDataTypePresence()
     
-    clf = pickle.load(trained_Models[modelType]["__classifierFilename"])
-    
+    f = open(trained_Models[modelType]["__classifierFilename"], 'rb')
+    clf = pickle.load(f)
+    f.close();
     
     mod = processor.MMChallengePredictor(
         mmcdata = processingData,
