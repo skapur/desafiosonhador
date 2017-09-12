@@ -23,38 +23,44 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import BaggingClassifier
 
-
 from data_preprocessing import MMChallengeData, MMChallengePredictor
-#execfile('D:\Dropbox\Trabalhos\\16.17\DREAM challenge\desafiosonhador\data_preprocessing.py')
 
-DIR = "C:/Users/vitor/synapse/syn7222203"
+DIR = "/home/skapur/synapse/syn7222203/"
 #DIR = 'D:\Dropbox\workspace_intelij\DREAM_Challenge'
 mmcd = MMChallengeData(DIR)
 mmcd.generateDataDict()
 
 MA_gene, MA_gene_cd, MA_gene_output = mmcd.dataDict[("MA", "gene")]
 MA_probe, MA_probe_cd, MA_probe_output = mmcd.dataDict[("MA", "probe")]
+
+
 RNA_gene, RNA_gene_cd, RNA_gene_output = mmcd.dataDict[("RNASeq", "gene")]
 RNA_trans, RNA_trans_cd, RNA_trans_output = mmcd.dataDict[("RNASeq", "trans")]
 
+
 pipeline_factory = lambda clf: Pipeline(steps=[("classify", clf)])
-cross_val_function = lambda X, y, clf: cross_validate(pipeline_factory(clf), X, y,
-                                                      scoring=["accuracy", "recall", "f1", "neg_log_loss", "precision",
-                                                               "roc_auc"], cv=10)
+
+def cross_val_function(X, y, clf):
+    print("Cross validating "+type(clf).__name__)
+    return cross_validate(pipeline_factory(clf), X, y, scoring=["accuracy", "recall", "f1", "neg_log_loss", "precision", "roc_auc"], cv=10, verbose=1)
 
 
-def report(cvr):
-    for name, array in cvr.items():
-        print(name + " : " + str(np.mean(array)) + " +/- " + str(np.std(array)))
+from numpy import where
+report = lambda cvr : '\n'.join([str(name + " : " + str(np.mean(array)) + " +/- " + str(np.std(array))) for name, array in cvr.items()])
 
 
 def rnaseq_prepare_data(X_gene, X_trans, y_orig, axis = 0):
-    X = pd.concat([X_gene, X_trans], axis=1).dropna(axis = axis)
+    if X_trans is not None:
+        X = pd.concat([X_gene, X_trans], axis=1).dropna(axis = axis)
+    else:
+        X = X_gene.dropna(axis=axis)
     y = y_orig[X.index]
     valid_samples = y != "CENSORED"
     X, y = X[valid_samples], y[valid_samples] == "TRUE"
     y = y.astype(int)
     return X, y
+
+
 
 def df_reduce(X, y, scaler = None, fts = None, fit = True, filename = None):
     import pickle
@@ -65,6 +71,9 @@ def df_reduce(X, y, scaler = None, fts = None, fit = True, filename = None):
             f = open(filename, 'wb')
             pickle.dump({'scaler': scaler, 'fts': fts}, f)
             f.close()
+    elif not fit and filename is None:
+        X = scaler.transform(X);
+        X = fts.transform(X)
     else:
         try: # load the objects from disk
             f = open(filename, 'rb')
@@ -72,28 +81,27 @@ def df_reduce(X, y, scaler = None, fts = None, fit = True, filename = None):
             scaler = dic['scaler']; fts = dic['fts']
             f.close()
             X = scaler.transform(X); X = fts.transform(X)
-        except:
-            print ("Unexpected error:", sys.exc_info()[0])
-            raise
+        except Exception as e:
+            print ("Unexpected error:", sys.exc_info())
+            #raise e
     return X, y, fts.get_support(True)
 
 
-def train_models(X, y, filename, model_list = None, parameters_dict = None):
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.naive_bayes import GaussianNB
-    if parameters_dict is None:
-        params = {'knn': {'n_neighbors': 4}, 'decisionTree': {'criterion': 'gini', 'max_depth': 4, 'splitter': 'random'},
-                  'logReg': {'solver': 'newton-cg', 'C': 1, 'penalty': "l2", 'tol': 0.001, 'multi_class': 'multinomial'},
-                  'svm': {'kernel': 'linear', 'C': 1, 'probability': True, 'gamma': 0.0001}, 'bagging': {'max_samples': 1, 'bootstrap': True},
-                  'nnet': {'solver': 'lbfgs', 'activation': "logistic", 'hidden_layer_sizes': (90,), 'alpha': 0.9},
-                  'randForest': {'max_depth': 5, 'criterion': 'entropy', 'n_estimators': 100}}
-    else: #User-defined parameters
-        params = parameters_dict
+params = {'knn': {'n_neighbors': 4}, 'decisionTree': {'criterion': 'gini', 'max_depth': 4, 'splitter': 'random'},
+          'logReg': {'solver': 'newton-cg', 'C': 1, 'penalty': "l2", 'tol': 0.001, 'multi_class': 'multinomial'},
+          'svm': {'kernel': 'linear', 'C': 1, 'probability': True, 'gamma': 0.0001},
+          'bagging': {'max_samples': 1, 'bootstrap': True},
+          'nnet': {'solver': 'lbfgs', 'activation': "logistic", 'hidden_layer_sizes': (90,), 'alpha': 0.9},
+          'randForest': {'max_depth': 5, 'criterion': 'entropy', 'n_estimators': 100}}
 
-    models = {'knn': KNeighborsClassifier(**params['knn']), 'nbayes': GaussianNB(), 'decisionTree': DecisionTreeClassifier(**params['decisionTree']),
-              'logReg': LogisticRegression(**params['logReg']), 'svm': SVC(**params['svm']), 'bagging': BaggingClassifier(**params['bagging']),
-              'nnet': MLPClassifier(**params['nnet']), 'randForest': RandomForestClassifier(**params['randForest'])}
+models = {'knn': KNeighborsClassifier(**params['knn']), 'nbayes': GaussianNB(), 'decisionTree': DecisionTreeClassifier(**params['decisionTree']),
+          'logReg': LogisticRegression(**params['logReg']), 'svm': SVC(**params['svm']), 'bagging': BaggingClassifier(**params['bagging']),
+          'nnet': MLPClassifier(**params['nnet']), 'randForest': RandomForestClassifier(**params['randForest'])}
 
+def cross_validate_models(X, y, model_dict, param_dict):
+    return {name:cross_val_function(X, y, clf) for name, clf in model_dict.items()}
+
+def train_models(X, y, filename, model_list = None):
     fittedModels = {}
     if model_list is None: #Fit all models
         for model in models.keys():
@@ -113,11 +121,6 @@ def train_models(X, y, filename, model_list = None, parameters_dict = None):
 
 scl = MaxAbsScaler()
 fts = SelectPercentile(percentile=30)
-# clf = GaussianNB()
-# cvr = cross_val_function(Xvt, yvt, clf)
-# report(cvr)
-# clf_final = GaussianNB()
-# clf_final.fit(Xt, yt)
 
 # =====================
 #   RNA Seq Data Test
@@ -125,68 +128,34 @@ fts = SelectPercentile(percentile=30)
 
 X_rseq, y_rseq = rnaseq_prepare_data(RNA_gene, RNA_trans, RNA_gene_output)
 X_rseq_t, y_rseq_t, fts_vector = df_reduce(X_rseq, y_rseq, scl, fts, True, filename = 'transformers_rna_seq.sav')
-train_models(X_rseq_t, y_rseq_t, filename = 'fittedModels_rna_seq.sav') # Train Models
+cv_rseq = cross_validate_models(X_rseq_t, y_rseq_t, models, params)
 
-f = open('fittedModels_rna_seq.sav', 'rb')
-fit_models = pickle.load(f)
-f.close()
+clf_rseq = GaussianNB()
+clf_rseq.fit(X_rseq, y_rseq)
+with open("fittedModel_rna_seq.sav", 'wb') as f:
+    pickle.dump(clf_rseq, f)
 
-res = {}
-# Make predictions
-for model in fit_models.keys():
-    clf = fit_models[str(model)]
-    mod = MMChallengePredictor(
-        mmcdata = mmcd,
-        predict_fun = lambda x: clf.predict(x)[0],
-        confidence_fun = lambda x: 1 - min(clf.predict_proba(x)[0]),
-        data_types = [("RNASeq", "gene"), ("RNASeq", "trans")],
-        single_vector_apply_fun = lambda x: x,
-        multiple_vector_apply_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, filename = 'transformers_rna_seq.sav')[0]
-    )
-    res[str(model)] = mod.predict_dataset()
+#train_models(X_rseq_t, y_rseq_t, filename = 'fittedModels_rna_seq.sav') # Train Models
 
-# save predictions to disk
-f = open('predictions_rna_seq.sav', 'wb')
-pickle.dump(res, f)
-f.close()
-
-f = open('predictions_microarrays.sav', 'rb')
-pred = pickle.load(f)
-f.close()
+# with open('fittedModels_rna_seq.sav', 'rb') as f:
+#     fit_models_rseq = pickle.load(f)
 
 # =========================
-#   Microarrays Data Test      = NOT WORKING =
+#   Microarrays Data Test      = Participants may also output the number/percent of genes in common across expression data sets (challenge questions 2 and 3) and the number/percent of mutations (or genes) in common across WES data sets (challenge questions 1 and 3).  This may again be done on a per data set basis and/or across all data sets.  However, in no case should this information be linked to particular samples.
 # =========================
 
-X_marrays, y_marrays = rnaseq_prepare_data(MA_gene, MA_probe, MA_gene_output, axis = 1)
+X_marrays, y_marrays = rnaseq_prepare_data(MA_gene, None, MA_gene_output, axis = 1)
 X_marrays_t, y_marrays_t, fts_vector = df_reduce(X_marrays, y_marrays, scl, fts, True, filename = 'transformers_microarrays.sav')
-train_models(X_marrays_t, y_marrays_t, filename = 'fittedModels_microarrays.sav') # Train Models
+cv_marrays = cross_validate_models(X_marrays_t, y_marrays_t, models, params)
 
-f = open('fittedModels_microarrays.sav', 'rb')
-fit_models = pickle.load(f)
-f.close()
+clf_marrays = GaussianNB()
+clf_marrays.fit(X_marrays, y_marrays)
+with open("fittedModel_microarrays.sav", 'wb') as f:
+    pickle.dump(clf_marrays, f)
+
 
 res = {}
 # Make predictions
-for model in fit_models.keys():
-    clf = fit_models[str(model)]
-    mod = MMChallengePredictor(
-        mmcdata = mmcd,
-        predict_fun = lambda x: clf.predict(x)[0],
-        confidence_fun = lambda x: 1 - min(clf.predict_proba(x)[0]),
-        data_types = [("MA", "gene"), ("MA", "probe")],
-        single_vector_apply_fun = lambda x: x,
-        multiple_vector_apply_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, filename = 'transformers_microarrays.sav')[0]
-    )
-    res[str(model)] = mod.predict_dataset()
-
-# save predictions to disk
-f = open('predictions_microarrays.sav', 'wb')
-pickle.dump(res, f)
-f.close()
-
-
-
 
 
 # ### EXPERIMENTAL
