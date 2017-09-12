@@ -91,8 +91,7 @@ class MMChallengeData(object):
         vcfdataframe = pd.DataFrame(vcfdict)
         vcfdataframe = vcfdataframe.T
         vcfdataframe.fillna(value=0, inplace=True)
-        if savesubdataframe:
-            vcfdataframe.to_csv(savesubdataframe)
+
         subdataset.set_index(GENOMIC_PROPS[level], drop=False, append=False, inplace=True)
         subdataset = subdataset.join(vcfdataframe)
 
@@ -100,6 +99,8 @@ class MMChallengeData(object):
         subdataset.set_index("Patient", drop=True, append=False, inplace=True)
         #subdataset.index = subdataset["Patient"]
         subdataset = subdataset.drop(GENOMIC_PROPS[level], axis=1)
+        if savesubdataframe:
+            subdataset.to_csv(savesubdataframe)
         return subdataset
     
     def get_X_Y_FromDataframe(self, df, removeClinical=False):

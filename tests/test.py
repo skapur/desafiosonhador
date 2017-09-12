@@ -16,7 +16,7 @@ def create_csv_from_data():
     x,y, modeltype = mmcd.preprocessPrediction(savePreprocessingDirectory = "/home/dreamchallenge/", directoryFolder="/home/dreamchallenge/link-data/")
     print(modeltype)
     df = pd.concat([x, y], axis=1)
-    df.to_csv("/home/dreamchallenge/synapse/ALL_joined.csv")
+    df.to_csv("/home/dreamchallenge/ALL_joined.csv")
 
 def create_csv_from_data2():
     df1 = DataFrame.from_csv('/home/tiagoalves/rrodrigues/globalClinTraining.csv')
@@ -117,9 +117,9 @@ def run_traning_joiningFiles(dataframefiles, useClinical=False, saveToFile='', d
         
     
 if __name__ == '__main__':
-    create_csv_from_data()
+    #create_csv_from_data()
     #run_traning("/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv", removeClinical=True)
-    '''
+    
     dataframefiles = ['/home/tiagoalves/rrodrigues/MuTectsnvs_joined.csv',
                       '/home/tiagoalves/rrodrigues/Strelkasnvs_joined.csv', 
                       '/home/tiagoalves/rrodrigues/StrelkaIndels_joined.csv']
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     run_traning_joiningFiles(dataframefiles, useClinical=True, doCV=True, 
                              saveTransformerFile='/home/tiagoalves/rrodrigues/ALL_Transformer_CH1.pkl',
                              saveClassifierFile='/home/tiagoalves/rrodrigues/ALL_Classifier_CH1.pkl')
-    '''
+    
     
 
     
