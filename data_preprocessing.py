@@ -159,7 +159,7 @@ class MMChallengePredictor(object):
             flag, score = self.predict_case(case)
         except Exception as e:
             flag, score = np.nan, np.nan
-        row = row + [flag, score]
+        row = row + [score, flag]
         return row
 
     def predict_dataset(self):
