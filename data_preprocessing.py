@@ -197,16 +197,32 @@ class MMChallengeData(object):
         
     def generateDataDict(self):
         self.dataDict = self.getDataDict()
-        self.dataPresence = self.__generateDataTypePresence()
+        self.dataPresence = self.generateDataTypePresence()
         
     def assertDataDict(self):
         assert self.dataDict is not None, "Data dictionary must be generated before checking for data type presence"
         
-    def __generateDataTypePresence(self):
+    def generateDataTypePresence(self):
         self.assertDataDict()
         return pd.DataFrame({pair: self.clinicalData.index.isin(df[0].index) for pair, df in self.dataDict.items()},index=self.clinicalData.index)
 
 class MMChallengePredictor(object):
+    
+
+    def __init__(self, mmcdata, predict_fun, confidence_fun, data_types, single_vector_apply_fun=lambda x: x,
+                multiple_vector_apply_fun=lambda x: x, predictor_name="Default Predictor"):
+        self.data_dict = mmcdata.dataDict
+        self.data_presence = mmcdata.dataPresence
+        self.clinical_data = mmcdata.clinicalData
+        self.predictor_name = predictor_name
+        self.predict_fun = predict_fun
+        self.confidence_fun = confidence_fun
+
+        assert not False in [dty in self.data_dict.keys() for dty in
+                     data_types], "Data types must exist on the data dictionary"
+        self.data_types = data_types
+        self.vapply = single_vector_apply_fun
+        self.capply = multiple_vector_apply_fun
 
     def predict_case(self, index):
         hasCorrectData = self.data_presence.loc[index,self.data_types]
@@ -216,23 +232,23 @@ class MMChallengePredictor(object):
             return self.predict_fun(X), self.confidence_fun(X)
         else:
             return np.nan, np.nan
-        
-    def get_pred_df_row(self,case):
-        row = self.clinical_data.loc[case,:][["Study","Patient"]].tolist()
+
+    def get_pred_df_row(self, case):
+        row = self.clinical_data.loc[case, :][["Study", "Patient"]].tolist()
         try:
             flag, score = self.predict_case(case)
         except Exception as e:
             flag, score = np.nan, np.nan
-        row = row + [flag,score]
+        row = row + [score, flag]
         return row
-    
+
     def predict_dataset(self):
         columns = ["study","patient",'_'.join(["predictionscore",self.predictor_name]),'_'.join(["highriskflag",self.predictor_name])]
         rows = [self.get_pred_df_row(case) for case in self.clinical_data.index]
         df = pd.DataFrame(rows)
         df.columns = columns
         return pd.DataFrame(df)
-    
+
     def get_feature_vector(self, index):
         frame = None
         if len(self.data_types) > 1:

@@ -2,33 +2,34 @@
 
 import sys, getopt
 import data_preprocessing as processor
+import pandas as pd
 import pickle
 
 trained_Models = {
     'ALL' : {
-        "__columnsDic" : "/ALL_featColumns_CH1.pkl",
-        "__transformerFilename" : "/ALL_Transformer_CH1.pkl",
-        "__classifierFilename" : "/ALL_Classifier_CH1.pkl" 
+        "__columnsDic" : "serialized_models/ALL_featColumns_CH1.pkl",
+        "__transformerFilename" : "serialized_models/ALL_Transformer_CH1.pkl",
+        "__classifierFilename" : "serialized_models/ALL_Classifier_CH1.pkl" 
         },
     'MUC' : {
-        "__columnsDic" : "/MuTectsnvs_featColumns_CH1.pkl",
-        "__transformerFilename" : "/MuTectsnvs_Transformer_CH1.pkl",
-        "__classifierFilename" : "/MuTectsnvs_Classifier_CH1.pkl" 
+        "__columnsDic" : "serialized_models/MuTectsnvs_featColumns_CH1.pkl",
+        "__transformerFilename" : "serialized_models/MuTectsnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "serialized_models/MuTectsnvs_Classifier_CH1.pkl" 
         },
     'STR_ALL' : {
-        "__columnsDic" : "/Strelka_featColumns_CH1.pkl",
-        "__transformerFilename" : "/Strelka_Transformer_CH1.pkl",
-        "__classifierFilename" : "/Strelka_Classifier_CH1.pkl" 
+        "__columnsDic" : "serialized_models/Strelka_featColumns_CH1.pkl",
+        "__transformerFilename" : "serialized_models/Strelka_Transformer_CH1.pkl",
+        "__classifierFilename" : "serialized_models/Strelka_Classifier_CH1.pkl" 
         },
     'STR_IN' : {
-        "__columnsDic" : "/StrelkaIndels_featColumns_CH1.pkl",
-        "__transformerFilename" : "/StrelkaIndels_Transformer_CH1.pkl",
-        "__classifierFilename" : "/StrelkaIndels_Classifier_CH1.pkl" 
+        "__columnsDic" : "serialized_models/StrelkaIndels_featColumns_CH1.pkl",
+        "__transformerFilename" : "serialized_models/StrelkaIndels_Transformer_CH1.pkl",
+        "__classifierFilename" : "serialized_models/StrelkaIndels_Classifier_CH1.pkl" 
         },
     'STR_SN' : {
-        "__columnsDic" : "/Strelkasnvs_featColumns_CH1.pkl",
-        "__transformerFilename" : "/Strelkasnvs_Transformer_CH1.pkl",
-        "__classifierFilename" : "/Strelkasnvs_Classifier_CH1.pkl" 
+        "__columnsDic" : "serialized_models/Strelkasnvs_featColumns_CH1.pkl",
+        "__transformerFilename" : "serialized_models/Strelkasnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "serialized_models/Strelkasnvs_Classifier_CH1.pkl" 
         }          
     }
 
@@ -55,41 +56,44 @@ def main(argv):
     f = open(trained_Models[modelType]["__columnsDic"], 'rb')
     featColumns = pickle.load(f);
     f.close();
-
-    featColumns = set(featColumns)
-    presentColumns = set(x.columns)
-    
-    intersect = featColumns & presentColumns
-    onlyinfeat = list(set(featColumns - intersect))
-    intersect = list(intersect)
-    
-    xintersected = x[intersect]
-    xintersected = xintersected.assign(**{k:0 for k in onlyinfeat})
-    #for l in onlyinfeat:
-    #    xintersected.loc[:, l] = 0
-    
-    x = xintersected
-
-    x, y, z = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
-    
-    processingData.dataDict = {"genomic" : (x,[],y) }
-    processingData.__generateDataTypePresence()
     
     f = open(trained_Models[modelType]["__classifierFilename"], 'rb')
     clf = pickle.load(f)
     f.close();
+
+    x = x.loc[:, featColumns]
+    x = x.fillna(value=0)
+
+    x, y, z = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
     
+    predictions = clf.predict(x)
+    scores = clf.predict_proba(x)[:,1]
+
+    predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=processingData.clinicalData.index)
+    
+    information = processingData.clinicalData[["Study","Patient"]]
+    outputDF = pd.concat([information, predicted], axis=1)
+    outputDF = outputDF[["Study","Patient", "predictionscore", "highriskflag"]]
+    outputDF.columns = ["study","patient", "predictionscore", "highriskflag"]
+    outputDF.to_csv(outputfile, index = False)
+    
+    '''
+    my_fun = lambda x: processor.df_reduce(x.values.reshape(1, -1), [], fit=False, filename=trained_Models[modelType]["__transformerFilename"])[0]
+    
+    processingData.dataDict = {"genomic" : (x,[],y) }
+    processingData.generateDataTypePresence()
+
     mod = processor.MMChallengePredictor(
         mmcdata = processingData,
         predict_fun = lambda x: clf.predict(x)[0],
         confidence_fun = lambda x: 1 - min(clf.predict_proba(x)[0]),
         data_types = ["genomic"],
-        single_vector_apply_fun = lambda x: x,
-        multiple_vector_apply_fun = lambda x: x.values.reshape(1,-1)
-    )
+        single_vector_apply_fun = my_fun,
+        multiple_vector_apply_fun = lambda x: x)
     
     outputDF = mod.predict_dataset()
-    outputDF.to_csv(outputfile)
+    outputDF.to_csv(outputfile, index = False)
+    '''
 
 if __name__ == "__main__":
     main(sys.argv[1:])
