@@ -59,9 +59,9 @@ def main(argv):
 
     #Final dataset
     final_res = res_rseq.combine_first(res_marrays)
-    final_res['highriskflag_Default Predictor'] = final_res['highriskflag_Default Predictor'] == 1
-    final_res['highriskflag_Default Predictor'] = final_res['highriskflag_Default Predictor'].apply(lambda x: str(x).upper())
     final_res.columns = ['study', 'patient', 'predictionscore', 'highriskflag']
+    final_res['highriskflag'] = final_res['highriskflag'] == 1
+    final_res['highriskflag'] = final_res['highriskflag'].apply(lambda x: str(x).upper())
 
     final_res.to_csv(sys.argv[2], index = False)
 
