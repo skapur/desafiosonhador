@@ -70,7 +70,7 @@ def main(argv):
     
     x = xintersected
 
-    x, y = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
+    x, y, z = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
     
     processingData.dataDict = {"genomic" : (x,[],y) }
     processingData.__generateDataTypePresence()
