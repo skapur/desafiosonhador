@@ -197,11 +197,11 @@ class MMChallengeData(object):
             print('The input challenge file is not been read correctly!')
             return None, None, None
 
-    def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG"):
-        return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
+    def getDataDict(self, clinicalVariables=("D_Age", "D_ISS"), outputVariable="HR_FLAG", directoryFolder='/test-data/'):
+        return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable, directoryFolder) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
         
-    def generateDataDict(self):
-        self.dataDict = self.getDataDict()
+    def generateDataDict(self, clinicalVariables=("D_Age", "D_ISS"), outputVariable="HR_FLAG", directoryFolder='/test-data/'):
+        self.dataDict = self.getDataDict(clinicalVariables, outputVariable, directoryFolder)
         self.dataPresence = self.__generateDataTypePresence()
 
     def assertDataDict(self):
