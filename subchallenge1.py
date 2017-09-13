@@ -76,7 +76,7 @@ def main(argv):
     predictions = clf.predict(x)
     scores = clf.predict_proba(x)[:,1]
     print("Finished to predict labels...")
-    
+
     print("Exporting prediction labels to file...")
     
     indexingdf = processingData.clinicalData.dropna(

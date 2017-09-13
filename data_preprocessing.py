@@ -150,7 +150,29 @@ class MMChallengeData(object):
         mucRNADF = self.getDataFrame("MuTectRnaseq", outputVariable=outputVariable, savesubdataframe=muctectRNACSV, directoryFolder=directoryFolder)
         strelkaInRNADF= self.getDataFrame("StrelkaIndelsRnaseq", outputVariable=outputVariable, savesubdataframe=strelkaIndelsRNACSV, directoryFolder=directoryFolder)
         streklaSnRNADF = self.getDataFrame("StrelkasnvsRnaseq", outputVariable=outputVariable, savesubdataframe=strelkasnvsRNACSV, directoryFolder=directoryFolder)
-        
+
+        dframes = [mucDF, strelkaInDF, streklaSnDF, mucRNADF, strelkaInRNADF, streklaSnRNADF]
+        x = None
+        y = None
+        clinical = None
+        for dframe in dframes:
+            if dframe is not None:
+                if x is None:
+                    x, y, clinical = self.get_X_Y_FromDataframe(dframe, outputVariable=outputVariable)
+                else:
+                    x2, y2, clinical2 = self.get_X_Y_FromDataframe(dframe, outputVariable=outputVariable)
+                    x = pd.concat([x, x2], axis=1)
+                    y = pd.concat([y, y2])
+                    clinical = pd.concat([clinical, clinical2])
+                    
+        x = x.groupby(x.columns, axis=1).sum()
+        y = y.groupby(y.index).first()
+        clinical = clinical.groupby(clinical.index).first()
+        if useClinical:
+            x = pd.concat([x, clinical], axis=1)
+                    
+        return x, y, 'ALL'
+        '''
         if mucDF is not None and strelkaInDF is not None and streklaSnDF is not None and mucRNADF is not None and strelkaInRNADF is not None and streklaSnRNADF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(mucDF, outputVariable=outputVariable)
 
@@ -264,7 +286,7 @@ class MMChallengeData(object):
         else:
             print('The input challenge file is not been read correctly!')
             return None, None, None
-
+'''
     def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/'):
         return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable, directoryFolder) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
         
