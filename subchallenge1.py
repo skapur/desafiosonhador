@@ -79,7 +79,10 @@ def main(argv):
     
     print("Exporting prediction labels to file...")
     
-    indexingdf = processingData.clinicalData.dropna(subset=["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV"], how='all')
+    indexingdf = processingData.clinicalData.dropna(
+        subset=["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
+                "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"],
+         how='all')
     
     print("There are " + str(len(processingData.clinicalData.index) - len(indexingdf.index)) + " patient rows wihout any WES file, they will be discarded from predictions...")
     

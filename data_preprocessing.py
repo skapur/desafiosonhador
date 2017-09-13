@@ -20,7 +20,10 @@ DATA_PROPS = {
 GENOMIC_PROPS = {
     "MuTectsnvs" : "WES_mutationFileMutect",
     "StrelkaIndels" : "WES_mutationFileStrelkaIndel",
-    "Strelkasnvs" : "WES_mutationFileStrelkaSNV"
+    "Strelkasnvs" : "WES_mutationFileStrelkaSNV",
+    "MuTectRnaseq" : "RNASeq_mutationFileMutect",
+    "StrelkaIndelsRnaseq" : "RNASeq_mutationFileStrelkaIndel",
+    "StrelkasnvsRnaseq" : "RNASeq_mutationFileStrelkaSNV"
 }
 
 
@@ -134,12 +137,18 @@ class MMChallengeData(object):
             muctectCSV = path.join(savePreprocessingDirectory, "MuTectsnvs_joined.csv")
             strelkaIndelsCSV = path.join(savePreprocessingDirectory, "StrelkaIndels_joined.csv")
             strelkasnvsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
+            muctectRNACSV = path.join(savePreprocessingDirectory, "MuTectsnvsRNA_joined.csv")
+            strelkaIndelsRNACSV = path.join(savePreprocessingDirectory, "StrelkaIndelsRNA_joined.csv")
+            strelkasnvsRNACSV = path.join(savePreprocessingDirectory, "StrelkasnvsRNA_joined.csv")
             
         mucDF = self.getDataFrame("MuTectsnvs", outputVariable=outputVariable, savesubdataframe=muctectCSV, directoryFolder=directoryFolder)
         strelkaInDF = self.getDataFrame("StrelkaIndels", outputVariable=outputVariable, savesubdataframe=strelkaIndelsCSV, directoryFolder=directoryFolder)
         streklaSnDF = self.getDataFrame("Strelkasnvs", outputVariable=outputVariable, savesubdataframe=strelkasnvsCSV, directoryFolder=directoryFolder)
+        mucRNADF = self.getDataFrame("MuTectRnaseq", outputVariable=outputVariable, savesubdataframe=muctectRNACSV, directoryFolder=directoryFolder)
+        strelkaInRNADF= self.getDataFrame("StrelkaIndelsRnaseq", outputVariable=outputVariable, savesubdataframe=strelkaIndelsRNACSV, directoryFolder=directoryFolder)
+        streklaSnRNADF = self.getDataFrame("StrelkasnvsRnaseq", outputVariable=outputVariable, savesubdataframe=strelkasnvsRNACSV, directoryFolder=directoryFolder)
         
-        if mucDF is not None and strelkaInDF is not None and streklaSnDF is not None:
+        if mucDF is not None and strelkaInDF is not None and streklaSnDF is not None and mucRNADF is not None and strelkaInRNADF is not None and streklaSnRNADF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(mucDF, outputVariable=outputVariable)
 
             x2, y2, clinical2 = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable=outputVariable)
@@ -151,7 +160,22 @@ class MMChallengeData(object):
             x = pd.concat([x, x3], axis=1)
             y = pd.concat([y, y3])
             clinical = pd.concat([clinical, clinical3])
-    
+            
+            x4, y4, clinical4 = self.get_X_Y_FromDataframe(mucRNADF, outputVariable=outputVariable)
+            x = pd.concat([x, x4], axis=1)
+            y = pd.concat([y, y4])
+            clinical = pd.concat([clinical, clinical4])
+
+            x5, y5, clinical5 = self.get_X_Y_FromDataframe(strelkaInRNADF, outputVariable=outputVariable)
+            x = pd.concat([x, x5], axis=1)
+            y = pd.concat([y, y5])
+            clinical = pd.concat([clinical, clinical5])
+            
+            x6, y6, clinical6 = self.get_X_Y_FromDataframe(streklaSnRNADF, outputVariable=outputVariable)
+            x = pd.concat([x, x6], axis=1)
+            y = pd.concat([y, y6])
+            clinical = pd.concat([clinical, clinical6])
+                
             x = x.groupby(x.columns, axis=1).sum()
             y = y.groupby(y.index).first()
             clinical = clinical.groupby(clinical.index).first()
