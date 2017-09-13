@@ -133,6 +133,9 @@ class MMChallengeData(object):
         muctectCSV = ''
         strelkaIndelsCSV = ''
         strelkasnvsCSV = ''
+        muctectRNACSV = ''
+        strelkaIndelsRNACSV = ''
+        strelkasnvsRNACSV = ''
         if savePreprocessingDirectory:
             muctectCSV = path.join(savePreprocessingDirectory, "MuTectsnvs_joined.csv")
             strelkaIndelsCSV = path.join(savePreprocessingDirectory, "StrelkaIndels_joined.csv")
