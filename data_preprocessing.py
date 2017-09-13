@@ -48,6 +48,10 @@ def df_reduce(X, y, scaler = None, fts = None, fit = True, filename = None):
             raise
     return X, y, fts.get_support(True)
 
+def getReadVCFFileFromPath(filenamepath):
+        reader = VCFReader()
+        compressed = filenamepath.endswith(".gz")
+        return reader.readVCFFile(filename=filenamepath, compressed=compressed)
 
 class MMChallengeData(object):
     def __init__(self, submissionfile):
@@ -83,12 +87,12 @@ class MMChallengeData(object):
     def getDataFrame(self, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="", directoryFolder='/test-data/'):
         if outputVariable in clinicalVariables: clinicalVariables.remove(outputVariable)
         subdataset = self.clinicalData[["Patient", GENOMIC_PROPS[level]] + clinicalVariables + [outputVariable]]
-        reader = VCFReader()
         filenames = self.clinicalData[GENOMIC_PROPS[level]].dropna().unique()
         if not filenames.size:
             return None
+
         paths = [ path.join(directoryFolder, f) for f in filenames]
-        vcfdict =  { k : v for k, v in zip(filenames, self.__executor.map(reader.readVCFFile, paths))}
+        vcfdict =  { k : v for k, v in zip(filenames, self.__executor.map(getReadVCFFileFromPath, paths))}
         vcfdataframe = pd.DataFrame(vcfdict)
         vcfdataframe = vcfdataframe.T
         vcfdataframe.fillna(value=0, inplace=True)
@@ -102,6 +106,8 @@ class MMChallengeData(object):
         if savesubdataframe:
             subdataset.to_csv(savesubdataframe)
         return subdataset
+    
+
     
     def get_X_Y_FromDataframe(self, df, removeClinical=True, outputVariable="HR_FLAG"):
         df = df.fillna(value=0)
