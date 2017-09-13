@@ -15,10 +15,10 @@ def main(argv):
     # ======== RNA-SEQ ========
 
     #Load fitted transformers and model
-    with open('transformers_rna_seq.sav', 'rb') as f:
+    with open('/desafiosonhador/transformers_rna_seq.sav', 'rb') as f:
         trf_rseq = pickle.load(f)
 
-    with open('fittedModel_rna_seq.sav', 'rb') as f:
+    with open('/desafiosonhador/fittedModel_rna_seq.sav', 'rb') as f:
         clf_rseq = pickle.load(f)
 
     mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
@@ -39,10 +39,10 @@ def main(argv):
     # ======== MICROARRAYS ========
 
     #Load fitted transformers and model
-    with open('transformers_microarrays.sav', 'rb') as f:
+    with open('/desafiosonhador/transformers_microarrays.sav', 'rb') as f:
         trf_marrays = pickle.load(f)
 
-    with open('fittedModel_microarrays.sav', 'rb') as f:
+    with open('/desafiosonhador/fittedModel_microarrays.sav', 'rb') as f:
         clf_marrays = pickle.load(f)
 
     mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
