@@ -89,8 +89,10 @@ def main(argv):
     outputDF = pd.concat([information, predicted], axis=1)
     outputDF = outputDF[["Study","Patient", "predictionscore", "highriskflag"]]
     outputDF.columns = ["study","patient", "predictionscore", "highriskflag"]
-    outputDF.to_csv(outputfile, index = False)
+    outputDF.to_csv(outputfile, index = False, sep='\t')
+
     print("Sub Challenge 1 prediction finished...")
+
     '''
     my_fun = lambda x: processor.df_reduce(x.values.reshape(1, -1), [], fit=False, filename=trained_Models[modelType]["__transformerFilename"])[0]
     
