@@ -76,7 +76,15 @@ def main(argv):
     print("Writing prediction matrix")
     final_res.to_csv(sys.argv[2], index = False, sep = '\t')
 
-    print("Any failed prediction in the prediction matrix? "+str(final_res.isnull().any()))
+    print("Any failed prediction column in the prediction matrix?")
+    print(str(final_res.isnull().any()))
+    print("All failed prediction column in the prediction matrix?")
+    print(str(final_res.isnull().all()))
+
+    final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0)
+    final_res["highriskflag"] = final_res["highriskflag"].fillna(value=False)
+
     print("Done!")
+
 if __name__ == "__main__":
     main(sys.argv[1:])
