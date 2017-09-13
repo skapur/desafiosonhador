@@ -50,9 +50,12 @@ def main(argv):
         elif opt in ("-o", "--ofile"):
             outputfile = arg
     
+    print("Starting reading VCF Files...")
     processingData = processor.MMChallengeData(inputfile);
     x, y, modelType = processingData.preprocessPrediction(outputVariable="D_Age");
+    print("Finished reading VCF Files...")
     
+    print("Starting reading model Files...")
     f = open(trained_Models[modelType]["__columnsDic"], 'rb')
     featColumns = pickle.load(f);
     f.close();
@@ -60,18 +63,25 @@ def main(argv):
     f = open(trained_Models[modelType]["__classifierFilename"], 'rb')
     clf = pickle.load(f)
     f.close();
-
+    
+    print("Finished reading model Files...")
+    print("Starting reducing dataframe for prediction...")
     x = x.loc[:, featColumns]
     x = x.fillna(value=0)
-
+    
     x, y, z = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
     
+    print("Finished reducing dataframe for prediction...")
+    print("Starting to predict labels...")
     predictions = clf.predict(x)
     scores = clf.predict_proba(x)[:,1]
-
+    print("Finished to predict labels...")
+    
+    print("Exporting prediction labels to file...")
     
     indexingdf = processingData.clinicalData.dropna(subset=["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV"], how='all')
     
+    print("There are " + str(len(processingData.clinicalData.index) - len(indexingdf.index)) + " patient rows wihout any WES file, they will be discarded from predictions...")
     
     predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=indexingdf.index)
     
@@ -80,7 +90,7 @@ def main(argv):
     outputDF = outputDF[["Study","Patient", "predictionscore", "highriskflag"]]
     outputDF.columns = ["study","patient", "predictionscore", "highriskflag"]
     outputDF.to_csv(outputfile, index = False)
-    
+    print("Sub Challenge 1 prediction finished...")
     '''
     my_fun = lambda x: processor.df_reduce(x.values.reshape(1, -1), [], fit=False, filename=trained_Models[modelType]["__transformerFilename"])[0]
     
