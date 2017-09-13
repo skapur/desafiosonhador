@@ -7,29 +7,29 @@ import pickle
 
 trained_Models = {
     'ALL' : {
-        "__columnsDic" : "serialized_models/ALL_featColumns_CH1.pkl",
-        "__transformerFilename" : "serialized_models/ALL_Transformer_CH1.pkl",
-        "__classifierFilename" : "serialized_models/ALL_Classifier_CH1.pkl" 
+        "__columnsDic" : "/desafiosonhador/serialized_models/ALL_featColumns_CH1.pkl",
+        "__transformerFilename" : "/desafiosonhador/serialized_models/ALL_Transformer_CH1.pkl",
+        "__classifierFilename" : "/desafiosonhador/serialized_models/ALL_Classifier_CH1.pkl" 
         },
     'MUC' : {
-        "__columnsDic" : "serialized_models/MuTectsnvs_featColumns_CH1.pkl",
-        "__transformerFilename" : "serialized_models/MuTectsnvs_Transformer_CH1.pkl",
-        "__classifierFilename" : "serialized_models/MuTectsnvs_Classifier_CH1.pkl" 
+        "__columnsDic" : "/desafiosonhador/serialized_models/MuTectsnvs_featColumns_CH1.pkl",
+        "__transformerFilename" : "/desafiosonhador/serialized_models/MuTectsnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "/desafiosonhador/serialized_models/MuTectsnvs_Classifier_CH1.pkl" 
         },
     'STR_ALL' : {
-        "__columnsDic" : "serialized_models/Strelka_featColumns_CH1.pkl",
-        "__transformerFilename" : "serialized_models/Strelka_Transformer_CH1.pkl",
-        "__classifierFilename" : "serialized_models/Strelka_Classifier_CH1.pkl" 
+        "__columnsDic" : "/desafiosonhador/serialized_models/Strelka_featColumns_CH1.pkl",
+        "__transformerFilename" : "/desafiosonhador/serialized_models/Strelka_Transformer_CH1.pkl",
+        "__classifierFilename" : "/desafiosonhador/serialized_models/Strelka_Classifier_CH1.pkl" 
         },
     'STR_IN' : {
-        "__columnsDic" : "serialized_models/StrelkaIndels_featColumns_CH1.pkl",
-        "__transformerFilename" : "serialized_models/StrelkaIndels_Transformer_CH1.pkl",
-        "__classifierFilename" : "serialized_models/StrelkaIndels_Classifier_CH1.pkl" 
+        "__columnsDic" : "/desafiosonhador/serialized_models/StrelkaIndels_featColumns_CH1.pkl",
+        "__transformerFilename" : "/desafiosonhador/serialized_models/StrelkaIndels_Transformer_CH1.pkl",
+        "__classifierFilename" : "/desafiosonhador/serialized_models/StrelkaIndels_Classifier_CH1.pkl" 
         },
     'STR_SN' : {
-        "__columnsDic" : "serialized_models/Strelkasnvs_featColumns_CH1.pkl",
-        "__transformerFilename" : "serialized_models/Strelkasnvs_Transformer_CH1.pkl",
-        "__classifierFilename" : "serialized_models/Strelkasnvs_Classifier_CH1.pkl" 
+        "__columnsDic" : "/desafiosonhador/serialized_models/Strelkasnvs_featColumns_CH1.pkl",
+        "__transformerFilename" : "/desafiosonhador/serialized_models/Strelkasnvs_Transformer_CH1.pkl",
+        "__classifierFilename" : "/desafiosonhador/serialized_models/Strelkasnvs_Classifier_CH1.pkl" 
         }          
     }
 
