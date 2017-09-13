@@ -13,7 +13,7 @@ def main(argv):
     print("Reading clinical data")
     mmcd = MMChallengeData(sys.argv[1])
     print("Reading files using information from clinical data")
-    mmcd.generateDataDict()
+    mmcd.generateDataDict(clinicalVariables=("D_Age", "D_ISS"), outputVariable=[], directoryFolder='/test-data/')
 
     # ======== RNA-SEQ ========
 
