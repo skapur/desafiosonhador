@@ -69,9 +69,13 @@ def main(argv):
     predictions = clf.predict(x)
     scores = clf.predict_proba(x)[:,1]
 
-    predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=processingData.clinicalData.index)
     
-    information = processingData.clinicalData[["Study","Patient"]]
+    indexingdf = processingData.clinicalData.dropna(subset=["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV"], how='all')
+    
+    
+    predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=indexingdf.index)
+    
+    information = indexingdf[["Study","Patient"]]
     outputDF = pd.concat([information, predicted], axis=1)
     outputDF = outputDF[["Study","Patient", "predictionscore", "highriskflag"]]
     outputDF.columns = ["study","patient", "predictionscore", "highriskflag"]
