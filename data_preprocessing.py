@@ -184,6 +184,28 @@ class MMChallengeData(object):
             
             return x, y, 'ALL'
         
+        elif mucRNADF is not None and strelkaInRNADF is not None and streklaSnRNADF is not None:
+            
+            x, y, clinical = self.get_X_Y_FromDataframe(mucRNADF, outputVariable=outputVariable)
+
+            x5, y5, clinical5 = self.get_X_Y_FromDataframe(strelkaInRNADF, outputVariable=outputVariable)
+            x = pd.concat([x, x5], axis=1)
+            y = pd.concat([y, y5])
+            clinical = pd.concat([clinical, clinical5])
+            
+            x6, y6, clinical6 = self.get_X_Y_FromDataframe(streklaSnRNADF, outputVariable=outputVariable)
+            x = pd.concat([x, x6], axis=1)
+            y = pd.concat([y, y6])
+            clinical = pd.concat([clinical, clinical6])
+                
+            x = x.groupby(x.columns, axis=1).sum()
+            y = y.groupby(y.index).first()
+            clinical = clinical.groupby(clinical.index).first()
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            
+            return x, y, 'ALL'
+        
         elif mucDF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(mucDF, outputVariable=outputVariable)
             if useClinical:
@@ -206,6 +228,24 @@ class MMChallengeData(object):
             
             return x, y, 'STR_ALL'
         
+        elif mucRNADF is not None:
+            x, y, clinical = self.get_X_Y_FromDataframe(mucRNADF, outputVariable)
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            return x, y, 'ALL'
+        
+        elif strelkaInRNADF is not None:
+            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInRNADF, outputVariable)
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            return x, y, 'ALL'  
+        
+        elif streklaSnRNADF is not None:
+            x, y, clinical = self.get_X_Y_FromDataframe(streklaSnRNADF, outputVariable)
+            if useClinical:
+                x = pd.concat([x, clinical], axis=1)
+            return x, y, 'ALL'
+                
         elif strelkaInDF is not None:
             x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable)
             if useClinical:
@@ -217,6 +257,7 @@ class MMChallengeData(object):
             if useClinical:
                 x = pd.concat([x, clinical], axis=1)
             return x, y, 'STR_SN'
+                  
         else:
             print('The input challenge file is not been read correctly!')
             return None, None, None
