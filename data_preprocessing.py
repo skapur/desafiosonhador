@@ -65,7 +65,7 @@ class MMChallengeData(object):
         self.dataDict = None
         self.dataPresence = None
 
-    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/'):
+    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None):
         type_level = DATA_PROPS[datype][level]
         type_level_sid = type_level + SAMP_ID_NAME
         baseCols = ["Patient", type_level, type_level_sid]
@@ -83,8 +83,13 @@ class MMChallengeData(object):
 
         df = df.loc[subcd[type_level_sid], :]
         df.index = subcd["Patient"]
-        df = df.dropna(axis=0, how='all')
-        df = df.dropna(axis=1, how='any')
+
+        if columnNames is None:
+            df = df.dropna(axis=0, how='all')
+            df = df.dropna(axis=1, how='any')
+        else:
+            df = df.loc[:,columnNames].fillna(value=0)
+
         return df, subcd.loc[df.index,clinicalVariables], subcd.loc[df.index,outputVariable]
 
     def getDataFrame(self, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="", directoryFolder='/test-data/'):
@@ -287,11 +292,11 @@ class MMChallengeData(object):
             print('The input challenge file is not been read correctly!')
             return None, None, None
 '''
-    def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/'):
-        return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable, directoryFolder) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
+    def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None):
+        return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable, directoryFolder, columnNames[(datype,level)] if columnNames is not None else None) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
         
-    def generateDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/'):
-        self.dataDict = self.getDataDict(clinicalVariables, outputVariable, directoryFolder)
+    def generateDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None):
+        self.dataDict = self.getDataDict(clinicalVariables, outputVariable, directoryFolder, columnNames)
         self.dataPresence = self.__generateDataTypePresence()
 
     def assertDataDict(self):
