@@ -12,8 +12,13 @@ def main(argv):
     print("Starting the script!")
     print("Reading clinical data")
     mmcd = MMChallengeData(sys.argv[1])
+
     print("Reading files using information from clinical data")
-    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/')
+
+    with open('/desafiosonhador/colnames.sav','rb') as f:
+        colname_dict = pickle.load(f)
+
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict)
 
     # ======== RNA-SEQ ========
 
