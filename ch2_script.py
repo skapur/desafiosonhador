@@ -27,7 +27,7 @@ def main(argv):
 
     for key, df in mmcd.dataDict.items():
         print(key)
-        print("Dataframe shape: "+str(df[0].shape))
+        print("Dataframe columns: "+str(df[0].shape[1]))
         print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
         print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
         print("*"*80)
