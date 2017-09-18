@@ -20,6 +20,19 @@ def main(argv):
 
     mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict)
 
+    mag = mmcd.dataDict[("MA","gene")]
+    mpr = mmcd.dataDict[("MA","probe")]
+    rsg = mmcd.dataDict[("RNASeq","gene")]
+    rst = mmcd.dataDict[("RNASeq","trans")]
+
+    for key, df in mmcd.dataDict.items():
+        print(key)
+        print("Dataframe shape: "+str(df[0].shape))
+        print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
+        print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
+        print("*"*80)
+
+
     # ======== RNA-SEQ ========
 
     print("Loading RS transformer")
@@ -38,7 +51,6 @@ def main(argv):
     mod_rseq = MMChallengePredictor(
             mmcdata = mmcd,
             predict_fun = lambda x: clf_rseq.predict(x)[0],
-            # confidence_fun = lambda x: 1 - min(clf_rseq.predict_proba(x)[0]),
             confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
             data_types = [("RNASeq", "gene"), ("RNASeq", "trans")],
             single_vector_apply_fun = lambda x: x,
