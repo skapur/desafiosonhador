@@ -65,7 +65,7 @@ class MMChallengeData(object):
         self.dataDict = None
         self.dataPresence = None
 
-    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None):
+    def getData(self, datype, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None, NARemove=[True,  True]):
         type_level = DATA_PROPS[datype][level]
         type_level_sid = type_level + SAMP_ID_NAME
         baseCols = ["Patient", type_level, type_level_sid]
@@ -83,10 +83,11 @@ class MMChallengeData(object):
 
         df = df.loc[subcd[type_level_sid], :]
         df.index = subcd["Patient"]
-
+        removeCols = NARemove[1]
+        removeRows = NARemove[0]
         if columnNames is None:
-            df = df.dropna(axis=0, how='all')
-            df = df.dropna(axis=1, how='any')
+            df = df.dropna(axis=0, how='all') if removeRows else df
+            df = df.dropna(axis=1, how='any') if removeCols else df
         else:
             df = df.loc[:,columnNames].fillna(value=0)
 
@@ -292,11 +293,11 @@ class MMChallengeData(object):
             print('The input challenge file is not been read correctly!')
             return None, None, None
 '''
-    def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None):
-        return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable, directoryFolder, columnNames[(datype,level)] if columnNames is not None else None) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
+    def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None, NARemove=[True,  True]):
+        return {(datype, level): self.getData(datype, level, clinicalVariables, outputVariable, directoryFolder, columnNames[(datype,level)] if columnNames is not None else None, NARemove) for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
         
-    def generateDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None):
-        self.dataDict = self.getDataDict(clinicalVariables, outputVariable, directoryFolder, columnNames)
+    def generateDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/', columnNames=None, NARemove=[True,  True]):
+        self.dataDict = self.getDataDict(clinicalVariables, outputVariable, directoryFolder, columnNames, NARemove)
         self.dataPresence = self.__generateDataTypePresence()
 
     def assertDataDict(self):
