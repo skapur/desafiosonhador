@@ -4,6 +4,7 @@ import pickle
 import sys, getopt
 from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce
+from copy import deepcopy
 
 def main(argv):
     #DIR = "/home/skapur/synapse/syn7222203/"
@@ -18,7 +19,14 @@ def main(argv):
     with open('/desafiosonhador/colnames.sav','rb') as f:
         colname_dict = pickle.load(f)
 
-    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict)
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=None, NARemove=[True,True])
+
+    for key, df in mmcd.dataDict:
+        print(key)
+        print("First 20 features - Validation: "+str(df.columns))
+        print(str(len(set(colname_dict[key] & df.columns)))+" overlapped features.")
+
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True,True])
 
     mag = mmcd.dataDict[("MA","gene")]
     mpr = mmcd.dataDict[("MA","probe")]
