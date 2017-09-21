@@ -23,8 +23,8 @@ def main(argv):
 
     for key, df in mmcd.dataDict.items():
         print(key)
-        print("First 20 features - Validation: "+str(df[0].columns))
-        print(str(len(set(colname_dict[key] & df[0].columns)))+" overlapped features.")
+        print("First 20 features - Validation: "+str(df[0].columns.tolist()))
+        print(str(len(set(colname_dict[key] & df[0].columns.tolist())))+" overlapped features.")
 
     mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True,True])
 
