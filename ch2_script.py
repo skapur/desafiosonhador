@@ -27,7 +27,7 @@ def main(argv):
         print(str(len(set(colname_dict[key]) & set(df[0].columns.tolist())))+" overlapped features.")
 
     col_parse_dict = {
-        ('RNA', 'trans'): lambda x: x.split('.')[0]
+        ('RNASeq', 'trans'): lambda x: x.split('.')[0]
     }
 
     mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True,True], colParseFunDict=col_parse_dict)
