@@ -88,7 +88,7 @@ class MMChallengeData(object):
             df = pd.concat(dframes)
         else:
             df = dframes[0]
-        print(df.columns.tolist())
+        #print(df.columns.tolist())
         df.columns = [colParseFun(col) if colParseFun is not None else lambda x: x for col in df.columns.tolist()]
         df = df.loc[subcd[type_level_sid], :]
         df.index = subcd["Patient"]
