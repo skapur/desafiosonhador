@@ -1,6 +1,6 @@
 import pickle
 from os import chdir
-chdir("C:/Users/vitor/MEOCloud/Projectos/DREAMChallenge_MultipleMyeloma/desafiosonhador")
+chdir("/home/skapur/MEOCloud/Projectos/DREAMChallenge_MultipleMyeloma/desafiosonhador")
 import sys, getopt
 from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce
@@ -10,12 +10,15 @@ from genomic_data_test import df_reduce
 #mmcd = MMChallengeData(DIR)
 print("Starting the script!")
 print("Reading clinical data")
-argv = "C:/Users/vitor/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv"
+argv = "/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv"
 mmcd = MMChallengeData(argv)
 
 with open('colnames.sav','rb') as f:
     colname_dict = pickle.load(f)
 
+col_parse_dict = {
+    ('RNA','trans'):lambda x: x.split('.')[0]
+}
 print("Reading files using information from clinical data")
 mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/home/skapur/synapse/syn7222203/CH2', columnNames=None, NARemove=[True, False])
 

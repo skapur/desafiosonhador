@@ -23,10 +23,14 @@ def main(argv):
 
     for key, df in mmcd.dataDict.items():
         print(key)
-        print("First 100 features - Validation: "+str(df[0].columns.tolist()[100:]))
+        print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
         print(str(len(set(colname_dict[key]) & set(df[0].columns.tolist())))+" overlapped features.")
 
-    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True,True])
+    col_parse_dict = {
+        ('RNA', 'trans'): lambda x: x.split('.')[0]
+    }
+
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True,True], colParseFunDict=col_parse_dict)
 
     mag = mmcd.dataDict[("MA","gene")]
     mpr = mmcd.dataDict[("MA","probe")]
