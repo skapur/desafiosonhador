@@ -23,6 +23,17 @@ def main(argv):
         ('RNASeq', 'trans'): lambda x: x.split('.')[0]
     }
 
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=None, NARemove=[True,True], colParseFunDict=col_parse_dict)
+
+    for key, df in mmcd.dataDict.items():
+        print(key)
+        print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
+        print(str(len(set(colname_dict[key]) & set(df[0].columns.tolist())))+" overlapped features.")
+        print("Dataframe columns: "+str(df[0].shape[1]))
+        print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
+        print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
+        print("*"*80)
+
 
     mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True,True], colParseFunDict=col_parse_dict)
 
@@ -30,7 +41,6 @@ def main(argv):
         print(key)
         print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
         print(str(len(set(colname_dict[key]) & set(df[0].columns.tolist())))+" overlapped features.")
-        print(key)
         print("Dataframe columns: "+str(df[0].shape[1]))
         print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
         print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
