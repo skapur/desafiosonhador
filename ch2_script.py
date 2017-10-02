@@ -82,7 +82,7 @@ def main(argv):
 
     # Redefining scaler for RNA-Seq
     rseq_new_scl = MaxAbsScaler()
-    rseq_data = mmcd.dataDict[("RNASeq", "gene")]
+    rseq_data = mmcd.dataDict[("RNASeq", "gene")][0]
     rseq_new_scl.fit(rseq_data)
     trf_rseq['scaler'] = rseq_new_scl
 
