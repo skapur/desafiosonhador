@@ -1,9 +1,6 @@
 import os.path as path
 import pandas as pd
 import numpy as np
-import multiprocessing
-import sys
-from readers.vcfreader import VCFReader
 
 SAMP_ID_NAME = "SamplId"
 DATA_PROPS = {
@@ -17,58 +14,14 @@ DATA_PROPS = {
     }
 }
 
-GENOMIC_PROPS = {
-    "MuTectsnvs": "WES_mutationFileMutect",
-    "StrelkaIndels": "WES_mutationFileStrelkaIndel",
-    "Strelkasnvs": "WES_mutationFileStrelkaSNV",
-    "MuTectRnaseq": "RNASeq_mutationFileMutect",
-    "StrelkaIndelsRnaseq": "RNASeq_mutationFileStrelkaIndel",
-    "StrelkasnvsRnaseq": "RNASeq_mutationFileStrelkaSNV"
-}
-
-
 def log_preprocessing(df):
     pass
-
-
-def df_reduce(X, y, scaler=None, fts=None, fit=True, filename=None):
-    import pickle
-    if fit:
-        scaler.fit(X, y);
-        X = scaler.transform(X)
-        fts.fit(X, y);
-        X = fts.transform(X)
-        if filename is not None:  # save the objects to disk
-            f = open(filename, 'wb')
-            pickle.dump({'scaler': scaler, 'fts': fts}, f)
-            f.close()
-    else:
-        try:  # load the objects from disk
-            f = open(filename, 'rb')
-            dic = pickle.load(f)
-            scaler = dic['scaler'];
-            fts = dic['fts']
-            f.close()
-            X = scaler.transform(X);
-            X = fts.transform(X)
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            raise
-    return X, y, fts.get_support(True)
-
-
-def getReadVCFFileFromPath(filenamepath):
-    reader = VCFReader()
-    compressed = filenamepath.endswith(".gz")
-    return reader.readVCFFile(filename=filenamepath, compressed=compressed)
-
 
 class MMChallengeData(object):
     def __init__(self, submissionfile):
         self.clinicalData = pd.read_csv(submissionfile)
         self.clinicalData["Patient Index"] = self.clinicalData.index
         self.clinicalData.index = self.clinicalData["Patient"]
-        self.__executor = multiprocessing.Pool(processes=multiprocessing.cpu_count() - 1)
         self.dataDict = None
         self.dataPresence = None
 
@@ -101,213 +54,6 @@ class MMChallengeData(object):
             df = df.loc[:, columnNames].fillna(value=0)
 
         return df, subcd.loc[df.index, clinicalVariables], subcd.loc[df.index, outputVariable]
-
-    def getDataFrame(self, level, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", savesubdataframe="",
-                     directoryFolder='/test-data/'):
-        if outputVariable in clinicalVariables: clinicalVariables.remove(outputVariable)
-        subdataset = self.clinicalData[["Patient", GENOMIC_PROPS[level]] + clinicalVariables + [outputVariable]]
-        filenames = self.clinicalData[GENOMIC_PROPS[level]].dropna().unique()
-        if not filenames.size:
-            return None
-
-        paths = [path.join(directoryFolder, f) for f in filenames]
-        vcfdict = {k: v for k, v in zip(filenames, self.__executor.map(getReadVCFFileFromPath, paths))}
-        vcfdataframe = pd.DataFrame(vcfdict)
-        vcfdataframe = vcfdataframe.T
-        vcfdataframe.fillna(value=0, inplace=True)
-        subdataset.set_index(GENOMIC_PROPS[level], drop=False, append=False, inplace=True)
-        subdataset = subdataset.join(vcfdataframe)
-
-        subdataset = subdataset.loc[pd.notnull(subdataset.index)]
-        subdataset.set_index("Patient", drop=True, append=False, inplace=True)
-        # subdataset.index = subdataset["Patient"]
-        subdataset = subdataset.drop(GENOMIC_PROPS[level], axis=1)
-        if savesubdataframe:
-            subdataset.to_csv(savesubdataframe)
-        return subdataset
-
-    def get_X_Y_FromDataframe(self, df, removeClinical=True, outputVariable="HR_FLAG"):
-        df = df.fillna(value=0)
-        if outputVariable == "HR_FLAG":
-            df = df[df["HR_FLAG"] != "CENSORED"]
-            y = df["HR_FLAG"] == "TRUE"
-            x = df.drop("HR_FLAG", axis=1)
-        else:
-            x = df
-            y = df[outputVariable]
-
-        clinical = x[["D_Age", "D_ISS"]]
-
-        if removeClinical:
-            x = x.drop("D_Age", axis=1)
-            x = x.drop("D_ISS", axis=1)
-        return x, y, clinical
-
-    def preprocessPrediction(self, useClinical=True, outputVariable="HR_FLAG", savePreprocessingDirectory='',
-                             directoryFolder='/test-data/'):
-        muctectCSV = ''
-        strelkaIndelsCSV = ''
-        strelkasnvsCSV = ''
-        muctectRNACSV = ''
-        strelkaIndelsRNACSV = ''
-        strelkasnvsRNACSV = ''
-        if savePreprocessingDirectory:
-            muctectCSV = path.join(savePreprocessingDirectory, "MuTectsnvs_joined.csv")
-            strelkaIndelsCSV = path.join(savePreprocessingDirectory, "StrelkaIndels_joined.csv")
-            strelkasnvsCSV = path.join(savePreprocessingDirectory, "Strelkasnvs_joined.csv")
-            muctectRNACSV = path.join(savePreprocessingDirectory, "MuTectsnvsRNA_joined.csv")
-            strelkaIndelsRNACSV = path.join(savePreprocessingDirectory, "StrelkaIndelsRNA_joined.csv")
-            strelkasnvsRNACSV = path.join(savePreprocessingDirectory, "StrelkasnvsRNA_joined.csv")
-
-        mucDF = self.getDataFrame("MuTectsnvs", outputVariable=outputVariable, savesubdataframe=muctectCSV,
-                                  directoryFolder=directoryFolder)
-        strelkaInDF = self.getDataFrame("StrelkaIndels", outputVariable=outputVariable,
-                                        savesubdataframe=strelkaIndelsCSV, directoryFolder=directoryFolder)
-        streklaSnDF = self.getDataFrame("Strelkasnvs", outputVariable=outputVariable, savesubdataframe=strelkasnvsCSV,
-                                        directoryFolder=directoryFolder)
-        mucRNADF = self.getDataFrame("MuTectRnaseq", outputVariable=outputVariable, savesubdataframe=muctectRNACSV,
-                                     directoryFolder=directoryFolder)
-        strelkaInRNADF = self.getDataFrame("StrelkaIndelsRnaseq", outputVariable=outputVariable,
-                                           savesubdataframe=strelkaIndelsRNACSV, directoryFolder=directoryFolder)
-        streklaSnRNADF = self.getDataFrame("StrelkasnvsRnaseq", outputVariable=outputVariable,
-                                           savesubdataframe=strelkasnvsRNACSV, directoryFolder=directoryFolder)
-
-        dframes = [mucDF, strelkaInDF, streklaSnDF, mucRNADF, strelkaInRNADF, streklaSnRNADF]
-        x = None
-        y = None
-        clinical = None
-        for dframe in dframes:
-            if dframe is not None:
-                if x is None:
-                    x, y, clinical = self.get_X_Y_FromDataframe(dframe, outputVariable=outputVariable)
-                else:
-                    x2, y2, clinical2 = self.get_X_Y_FromDataframe(dframe, outputVariable=outputVariable)
-                    x = pd.concat([x, x2], axis=1)
-                    y = pd.concat([y, y2])
-                    clinical = pd.concat([clinical, clinical2])
-
-        x = x.groupby(x.columns, axis=1).sum()
-        y = y.groupby(y.index).first()
-        clinical = clinical.groupby(clinical.index).first()
-        if useClinical:
-            x = pd.concat([x, clinical], axis=1)
-
-        return x, y, 'ALL'
-        '''
-        if mucDF is not None and strelkaInDF is not None and streklaSnDF is not None and mucRNADF is not None and strelkaInRNADF is not None and streklaSnRNADF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(mucDF, outputVariable=outputVariable)
-
-            x2, y2, clinical2 = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable=outputVariable)
-            x = pd.concat([x, x2], axis=1)
-            y = pd.concat([y, y2])
-            clinical = pd.concat([clinical, clinical2])
-            
-            x3, y3, clinical3 = self.get_X_Y_FromDataframe(streklaSnDF, outputVariable=outputVariable)
-            x = pd.concat([x, x3], axis=1)
-            y = pd.concat([y, y3])
-            clinical = pd.concat([clinical, clinical3])
-            
-            x4, y4, clinical4 = self.get_X_Y_FromDataframe(mucRNADF, outputVariable=outputVariable)
-            x = pd.concat([x, x4], axis=1)
-            y = pd.concat([y, y4])
-            clinical = pd.concat([clinical, clinical4])
-
-            x5, y5, clinical5 = self.get_X_Y_FromDataframe(strelkaInRNADF, outputVariable=outputVariable)
-            x = pd.concat([x, x5], axis=1)
-            y = pd.concat([y, y5])
-            clinical = pd.concat([clinical, clinical5])
-            
-            x6, y6, clinical6 = self.get_X_Y_FromDataframe(streklaSnRNADF, outputVariable=outputVariable)
-            x = pd.concat([x, x6], axis=1)
-            y = pd.concat([y, y6])
-            clinical = pd.concat([clinical, clinical6])
-                
-            x = x.groupby(x.columns, axis=1).sum()
-            y = y.groupby(y.index).first()
-            clinical = clinical.groupby(clinical.index).first()
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            
-            return x, y, 'ALL'
-        
-        elif mucRNADF is not None and strelkaInRNADF is not None and streklaSnRNADF is not None:
-            
-            x, y, clinical = self.get_X_Y_FromDataframe(mucRNADF, outputVariable=outputVariable)
-
-            x5, y5, clinical5 = self.get_X_Y_FromDataframe(strelkaInRNADF, outputVariable=outputVariable)
-            x = pd.concat([x, x5], axis=1)
-            y = pd.concat([y, y5])
-            clinical = pd.concat([clinical, clinical5])
-            
-            x6, y6, clinical6 = self.get_X_Y_FromDataframe(streklaSnRNADF, outputVariable=outputVariable)
-            x = pd.concat([x, x6], axis=1)
-            y = pd.concat([y, y6])
-            clinical = pd.concat([clinical, clinical6])
-                
-            x = x.groupby(x.columns, axis=1).sum()
-            y = y.groupby(y.index).first()
-            clinical = clinical.groupby(clinical.index).first()
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            
-            return x, y, 'ALL'
-        
-        elif mucDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(mucDF, outputVariable=outputVariable)
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            return x, y, 'MUC'
-        
-        elif strelkaInDF is not None and streklaSnDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable=outputVariable)
-            x2, y2, clinical2 = self.get_X_Y_FromDataframe(streklaSnDF, outputVariable=outputVariable)
-            x = pd.concat([x, x2], axis=1)
-            y = pd.concat([y, y2])
-            clinical = pd.concat([clinical, clinical2])
-
-            x = x.groupby(x.columns, axis=1).sum()
-            y = y.groupby(y.index).first()
-            clinical = clinical.groupby(clinical.index).first()
-
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            
-            return x, y, 'STR_ALL'
-        
-        elif mucRNADF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(mucRNADF, outputVariable)
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            return x, y, 'ALL'
-        
-        elif strelkaInRNADF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInRNADF, outputVariable)
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            return x, y, 'ALL'  
-        
-        elif streklaSnRNADF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(streklaSnRNADF, outputVariable)
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            return x, y, 'ALL'
-                
-        elif strelkaInDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable)
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            return x, y, 'STR_IN'
-        
-        elif streklaSnDF is not None:
-            x, y, clinical = self.get_X_Y_FromDataframe(strelkaInDF, outputVariable)
-            if useClinical:
-                x = pd.concat([x, clinical], axis=1)
-            return x, y, 'STR_SN'
-                  
-        else:
-            print('The input challenge file is not been read correctly!')
-            return None, None, None
-'''
 
     def getDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/test-data/',
                     columnNames=None, NARemove=[True, True], colParseFunDict=None):
