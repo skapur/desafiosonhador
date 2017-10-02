@@ -6,6 +6,20 @@ from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce
 from copy import deepcopy
 
+def prediction_report(df):
+    # min, max, IQR, median, mean, Trues
+    scores = df["predictionscore"]
+    flags = df["highriskflag"]
+    maxp, minp = scores.max(), scores.min()
+    q1, q3 = scores.quantile([.25, .75])
+    mean, median = scores.mean(), scores.median()
+    num_trues = sum(flags == "TRUE")
+    print("Score range: "+str(minp)+" <> "+str(maxp))
+    print("Q1 = "+str(q1)+" <> "+"Q3 = "+str(q3))
+    print("Mean: "+str(mean))
+    print("Median: "+str(median))
+    print("True predictions: "+str(num_trues))
+
 def main(argv):
     #DIR = "/home/skapur/synapse/syn7222203/"
     #DIR = 'D:\Dropbox\workspace_intelij\DREAM_Challenge'
@@ -23,29 +37,34 @@ def main(argv):
         ('RNASeq', 'trans'): lambda x: x.split('.')[0]
     }
 
-    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=None, NARemove=[True,True], colParseFunDict=col_parse_dict)
-
-    for key, df in mmcd.dataDict.items():
-        print(key)
-        print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
-        overlap = set(colname_dict[key]) & set(df[0].columns.tolist())
-        print("Overlapped genes:")
-        print(overlap)
-        print("Dataframe columns: "+str(df[0].shape[1]))
-        print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
-        print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
-        print("*"*80)
+    # mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=None, NARemove=[True,True], colParseFunDict=col_parse_dict)
+    #
+    # for key, df in mmcd.dataDict.items():
+    #     print(key)
+    #     print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
+    #     overlap = set(colname_dict[key]) & set(df[0].columns.tolist())
+    #     print("Overlapped genes:")
+    #     print(overlap)
+    #     print("Dataframe columns: "+str(df[0].shape[1]))
+    #     print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
+    #     print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
+    #     print("*"*80)
 
 
     mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True,True], colParseFunDict=col_parse_dict)
 
     for key, df in mmcd.dataDict.items():
         print(key)
-        print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
-        print(str(len(set(colname_dict[key]) & set(df[0].columns.tolist())))+" overlapped features.")
-        print("Dataframe columns: "+str(df[0].shape[1]))
-        print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
-        print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
+        #print("First 100 features - Validation: "+str(df[0].columns.tolist
+
+        training_features = set(colname_dict[key])
+        validation_features = set(df[0].columns.tolist())
+        overlapped_features = training_features & validation_features
+
+        print(str(len(overlapped_features))+" "+"overlapped features.")
+        #print("Dataframe columns: "+str(df[0].shape[1]))
+        #print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
+        #print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
         print("*"*80)
 
     # ======== RNA-SEQ ========
@@ -116,6 +135,7 @@ def main(argv):
     final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0)
     final_res["highriskflag"] = final_res["highriskflag"].fillna(value=False)
 
+    prediction_report(final_res)
     print("Done!")
 
 if __name__ == "__main__":
