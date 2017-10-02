@@ -93,6 +93,26 @@ def train_models(X, y, filename, model_list = None):
     pickle.dump(fittedModels, f)
     f.close()
 
+def crossValEnseble (X, y, cv = 5, clf = DecisionTreeClassifier(), n = 50):
+    estimator = AdaBoostClassifier(base_estimator = clf, n_estimators = n)
+    name = estimator.__class__.__name__
+    mscore = ['accuracy', 'f1', 'neg_log_loss', 'recall']
+    scores = cross_validate(estimator, X, y, cv = cv, scoring = mscore)
+    print("="*30)
+    print(name, 'with', clf.__class__.__name__, '(n = ' + str(n) + ')')
+    print('****Results****')
+    print('Fit time: %0.4f (+/- %0.4f)' % (np.mean(scores['fit_time']), np.std(scores['fit_time'])))
+    print('Score time: %0.4f (+/- %0.4f)' % (np.mean(scores['score_time']), np.std(scores['score_time'])))
+    print('Test accuracy: %0.4f (+/- %0.4f)' % (np.mean(scores['test_accuracy']), np.std(scores['test_accuracy'])))
+    print('Train accuracy: %0.4f (+/- %0.4f)' % (np.mean(scores['train_accuracy']), np.std(scores['train_accuracy'])))
+    print('Test F-score: %0.4f (+/- %0.4f)' % (np.mean(scores['test_f1']), np.std(scores['test_f1'])))
+    print('Train F-score: %0.4f (+/- %0.4f)' % (np.mean(scores['train_f1']), np.std(scores['train_f1'])))
+    print('Test log-loss: %0.4f (+/- %0.4f)' % (-np.mean(scores['test_neg_log_loss']), np.std(scores['test_neg_log_loss'])))
+    print('Train log-loss: %0.4f (+/- %0.4f)' % (-np.mean(scores['train_neg_log_loss']), np.std(scores['train_neg_log_loss'])))
+    print('Test recall: %0.4f (+/- %0.4f)' % (np.mean(scores['test_recall']), np.std(scores['test_recall'])))
+    print('Train recall: %0.4f (+/- %0.4f)' % (np.mean(scores['train_recall']), np.std(scores['train_recall'])))
+    print("="*30)
+
 
 
 if __name__ == '__main__':
@@ -162,10 +182,135 @@ if __name__ == '__main__':
         pickle.dump(clf_marrays, f)
 
 
+
+
+
+    # =======================================================
+    #                      ENSEMBLE Test
+    # =======================================================
+
+    # http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.AdaBoostClassifier.html#sklearn.ensemble.AdaBoostClassifier
+    from sklearn.ensemble import AdaBoostClassifier
+
+    data_folder = '.\Expression Data\All Data'
+    clin_file = '.\Clinical Data\sc2_Training_ClinAnnotations.csv'
+    mmcd = MMChallengeData(clin_file)
+
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder=data_folder, columnNames=None, NARemove=[True, False])
+
+    #Transformers
+    scl = MaxAbsScaler()
+    fts = SelectPercentile(percentile=30)
+
+    # =========================
+    #          RNA-SEQ
+    # =========================
+
+    #Prepare data
+    Xrseq, cdrseq, yrseq = mmcd.dataDict[("RNASeq","gene")]
+    Xnrseq = Xrseq.dropna(axis = 1)
+    yrseq = yrseq == "TRUE"
+    yrseq = yrseq.astype(int)
+
+    X_rseq_t, y_rseq_t, fts_vector = df_reduce(Xnrseq, yrseq, scl, fts, True, filename = 'transformers_rna_seq.sav')
+
+    #Cross-validation test
+    crossValEnseble(X_rseq_t, y_rseq_t, clf = SVC(probability = True, kernel = 'linear'), n = 1)
+    crossValEnseble(X_rseq_t, y_rseq_t, clf = GaussianNB(), n = 50)
+    crossValEnseble(X_rseq_t, y_rseq_t, clf = LogisticRegression(), n = 50)
+
+
+    clf_rseq = AdaBoostClassifier(base_estimator = LogisticRegression(), n_estimators = 50)
+    clf_rseq.fit(X_rseq_t, y_rseq_t)
+    with open("fittedModel_logreg_ensemble_rna_seq.sav", 'wb') as f:
+        pickle.dump(clf_rseq, f)
+
+    # with open('transformers_rna_seq.sav', 'rb') as f:
+    #     trf_rseq = pickle.load(f)
+    #
+    # with open('fittedModel_rna_seq.sav', 'rb') as f:
+    #     clf_rseq = pickle.load(f)
+
+    mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
+
     # Make predictions
+    mod_rseq = MMChallengePredictor(
+        mmcdata = mmcd,
+        predict_fun = lambda x: clf_rseq.predict(x)[0],
+        # confidence_fun = lambda x: 1 - min(clf_rseq.predict_proba(x)[0]),
+        confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
+        data_types = [("RNASeq", "gene"), ("RNASeq", "trans")],
+        single_vector_apply_fun = lambda x: x,
+        multiple_vector_apply_fun = mv_fun_rseq
+    )
+    res_rseq = mod_rseq.predict_dataset()
+
+    # =============================
+    #          MICROARRAYS
+    # =============================
+
+    Xma, cdma, yma = mmcd.dataDict[("MA","gene")]
+    Xnma = Xma.dropna(axis = 1)
+    yma = yma == "TRUE"
+    yma = yma.astype(int)
+
+    X_ma_t, y_ma_t, fts_vector = df_reduce(Xnma, yma, scl, fts, True, filename = 'transformers_microarrays.sav')
+
+    #Cross-validation test
+    crossValEnseble(X_ma_t, y_ma_t, clf = LogisticRegression(), n = 50)
+
+    clf_marrays = AdaBoostClassifier(base_estimator = LogisticRegression(), n_estimators = 50)
+    clf_marrays.fit(X_ma_t, y_ma_t)
+    with open("fittedModel_logreg_ensemble_microarrays.sav", 'wb') as f:
+        pickle.dump(clf_marrays, f)
 
 
-    # ### EXPERIMENTAL
+    # with open('transformers_microarrays.sav', 'rb') as f:
+    #     trf_marrays = pickle.load(f)
+    #
+    # with open('fittedModel_microarrays.sav', 'rb') as f:
+    #     clf_marrays = pickle.load(f)
+
+    mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
+
+    # Make predictions
+    mod_marryas = MMChallengePredictor(
+        mmcdata = mmcd,
+        predict_fun = lambda x: clf_marrays.predict(x)[0],
+        confidence_fun = lambda x: clf_marrays.predict_proba(x)[0][1],
+        data_types = [("MA", "gene")],
+        single_vector_apply_fun = mv_fun,
+        multiple_vector_apply_fun = lambda x: x
+    )
+    res_marrays = mod_marryas.predict_dataset()
+
+    # =========================
+    #       Final Dataset
+    # =========================
+
+    final_res = res_rseq.combine_first(res_marrays)
+    final_res.columns = ['study', 'patient', 'predictionscore', 'highriskflag']
+    final_res['highriskflag'] = final_res['highriskflag'] == 1
+    final_res['highriskflag'] = final_res['highriskflag'].apply(lambda x: str(x).upper())
+
+    final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0.5)
+    #final_res["highriskflag"] = final_res["highriskflag"].fillna(value=True)
+
+    final_res.to_csv("predictions.tsv", index = False, sep = '\t')
+
+    print(str(final_res.isnull().any()))
+    print(str(final_res.isnull().all()))
+
+
+
+
+
+
+
+
+
+
+# ### EXPERIMENTAL
     #
     # scl.transform(vec)
     # for scaler in ppscalers:

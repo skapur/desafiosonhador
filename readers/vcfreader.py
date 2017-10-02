@@ -1,4 +1,4 @@
-import vcf
+#import vcf
 import pandas as pd
 
 class VCFReader(object):
