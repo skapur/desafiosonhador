@@ -114,7 +114,7 @@ def main(argv):
 
     # Redefining scaler for marrays
     marrays_new_scl = MaxAbsScaler()
-    marrays_data = mmcd.dataDict("MA", "gene")
+    marrays_data = mmcd.dataDict[("MA", "gene")]
     marrays_new_scl.fit(marrays_data)
     trf_marrays['fts'] = marrays_new_scl
 
