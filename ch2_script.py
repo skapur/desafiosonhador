@@ -82,7 +82,7 @@ def main(argv):
 
     # Redefining scaler for RNA-Seq
     rseq_new_scl = MaxAbsScaler()
-    rseq_data = pd.concat([mmcd.dataDict[("RNASeq", "gene")], mmcd.dataDict[("RNASeq", "trans")]], axis=1)
+    rseq_data = pd.concat([mmcd.dataDict[("RNASeq", "gene")][0], mmcd.dataDict[("RNASeq", "trans")][0]], axis=1)
     rseq_new_scl.fit(rseq_data)
     trf_rseq['fts'] = rseq_new_scl
 
@@ -114,7 +114,7 @@ def main(argv):
 
     # Redefining scaler for marrays
     marrays_new_scl = MaxAbsScaler()
-    marrays_data = mmcd.dataDict[("MA", "gene")]
+    marrays_data = mmcd.dataDict[("MA", "gene")][0]
     marrays_new_scl.fit(marrays_data)
     trf_marrays['fts'] = marrays_new_scl
 
