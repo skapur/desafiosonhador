@@ -4,6 +4,8 @@ import pickle
 import sys, getopt
 from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce
+from sklearn.preprocessing import MaxAbsScaler
+import pandas as pd
 from copy import deepcopy
 
 def prediction_report(df):
@@ -78,6 +80,13 @@ def main(argv):
     with open('/desafiosonhador/fittedModel_rna_seq.sav', 'rb') as f:
         clf_rseq = pickle.load(f)
 
+    # Redefining scaler for RNA-Seq
+    rseq_new_scl = MaxAbsScaler()
+    rseq_data = pd.concat(mmcd.dataDict[("RNASeq", "gene")], mmcd.dataDict[("RNASeq", "trans")], axis=1)
+    rseq_new_scl.fit(rseq_data)
+    trf_rseq['fts'] = rseq_new_scl
+
+
     mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
 
     print("Predicting with RS...")
@@ -102,6 +111,12 @@ def main(argv):
     print("Loading MA classifier")
     with open('/desafiosonhador/fittedModel_microarrays.sav', 'rb') as f:
         clf_marrays = pickle.load(f)
+
+    # Redefining scaler for marrays
+    marrays_new_scl = MaxAbsScaler()
+    marrays_data = mmcd.dataDict("MA", "gene")
+    marrays_new_scl.fit(marrays_data)
+    trf_marrays['fts'] = marrays_new_scl
 
     mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
 
