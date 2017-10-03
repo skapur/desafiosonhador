@@ -32,7 +32,16 @@ class VCFModelPredictor(object):
             'StrelkaIndelsRnaseq' :'StrelkaIndels',
             'StrelkasnvsRnaseq' :  'Strelkasnvs'
         }
-    
+        self.__predictionModelToColumns = {
+            "MuTectsnvs" : ["WES_mutationFileMutect"],
+            "StrelkaIndels" : ["WES_mutationFileStrelkaIndel"],
+            "Strelkasnvs" : ["WES_mutationFileStrelkaSNV"],
+            "MuTectRnaseq" : ["RNASeq_mutationFileMutect"],
+            "StrelkaIndelsRnaseq" : ["RNASeq_mutationFileStrelkaIndel"],
+            "StrelkasnvsRnaseq" : ["RNASeq_mutationFileStrelkaSNV"],
+            "ALL" : ["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
+                "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"]
+        }
     
     def generate_predictions_scores(self, x, modelType):
         if modelType in self.__exploited_models.keys():
@@ -51,7 +60,7 @@ class VCFModelPredictor(object):
         print("Starting reducing dataframe for prediction...")
         x = x.loc[:, featColumns]
         print("Overlapping columns from prediction data")
-        print(x.isnull().all())
+        print(x.isnull().all().value_counts())
         x = x.fillna(value=0)
         
         x, z = self.__df_reduce(x, filename=self.__trained_Models[modelType]["__transformerFilename"])
@@ -79,17 +88,17 @@ class VCFModelPredictor(object):
             raise
         return X, fts.get_support(True)
     
-    def generate_prediction_dataframe(self, clinicalDataframe, predictions, scores):
+    def generate_prediction_dataframe(self, clinicalDataframe, modelType, predictions, scores):
         print("Exporting prediction labels to file...")
         indexingdf = clinicalDataframe.dropna(
-            subset=["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
-                "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"], 
+            subset=self.__predictionModelToColumns[modelType], 
             how='all')
-        
-        print("There are " + str(len(clinicalDataframe.index) - len(indexingdf.index)) + " patient rows wihout any WES file, they will be discarded from predictions...")
+
         predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=indexingdf.index)
+        predicted["highriskflag"] = predicted["highriskflag"].astype(str).apply(lambda x: x.upper())
         information = indexingdf[["Study", "Patient"]]
         outputDF = pd.concat([information, predicted], axis=1)
         outputDF = outputDF[["Study", "Patient", "predictionscore", "highriskflag"]]
         outputDF.columns = ["study", "patient", "predictionscore", "highriskflag"]
+        outputDF = outputDF.reset_index(drop=True)
         return outputDF

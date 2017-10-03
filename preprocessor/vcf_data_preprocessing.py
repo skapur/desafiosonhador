@@ -27,7 +27,7 @@ class VCFDataPreprocessor(object):
     def getClinicalData(self):
         return self.__clinicalData;
     
-    def getPatientDataByDataset(self, directoryFolder='/test-data/', useFiltered=False):
+    def getPatientDataByDataset(self, directoryFolder='/test-data/', useFiltered=False, forTraining=False):
         result = {}
         reader = VCFReader()
         
@@ -35,12 +35,12 @@ class VCFDataPreprocessor(object):
             datasetDataframe = self.__clinicalData[self.__clinicalData[GENOMIC_PROPS[dataset]].notnull()].copy()
             if not useFiltered:
                 datasetDataframe.replace({'.FILTERED': ''}, regex=True, inplace=True)
-            if "HR_FLAG" in datasetDataframe.columns:
+            if "HR_FLAG" in datasetDataframe.columns and forTraining:
                 valid_samples = datasetDataframe["HR_FLAG"] != "CENSORED"
                 datasetDataframe = datasetDataframe[valid_samples]
             if not datasetDataframe.empty:
                 data = PatientData(dataset, datasetDataframe.loc[datasetDataframe.index, "Patient"].copy())
-                data = self.__fillClinicalData(data, datasetDataframe)
+                data = self.__fillClinicalData(data, datasetDataframe, forTraining)
                 
     
                 filenames = datasetDataframe[GENOMIC_PROPS[dataset]].unique()
@@ -119,7 +119,7 @@ class VCFDataPreprocessor(object):
                 data.set_flags(flags)
         return data
      
-    def __fillClinicalData(self, patientdata, datasetDataframe):
+    def __fillClinicalData(self, patientdata, datasetDataframe, forTraining=False):
         colums = self.__clinicalData.columns
         containsAge = "D_Age" in colums
         containsISS = "D_ISS" in colums
@@ -134,7 +134,7 @@ class VCFDataPreprocessor(object):
         if containsISS:
             patientdata.set_ISSs(datasetDataframe.loc[datasetDataframe.index, "D_ISS"].copy())
             
-        if containsHRFlag:
+        if containsHRFlag and forTraining:
             flags = datasetDataframe.loc[datasetDataframe.index, "HR_FLAG"].copy()
             flags = flags == 'TRUE'
             patientdata.set_flags(flags)

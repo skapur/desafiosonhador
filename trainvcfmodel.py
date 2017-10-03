@@ -34,12 +34,12 @@ def processDataset(modelsFolder, fts_percentile, method, doCV, saveFiles, traine
         clffilename = str(dataset.get_dataset_origin()) + "_Classifier_CH1.pkl"
         print("Saving " + clffilename)
         f = open(path.join(modelsFolder, clffilename), 'wb')
-        pickle.dump(f, clf)
+        pickle.dump(clf,f)
         f.close()
 
-def train_serialize_models(clinicalfile, dataFolder='/test-data/', modelsFolder='/', fts_percentile=8, method="nnet", doCV=True, saveFiles=True, joinAllDatasets=False):
+def train_serialize_models(clinicalfile, dataFolder='/test-data/', modelsFolder='/', fts_percentile=15, method="nnet", doCV=True, saveFiles=True, joinAllDatasets=False):
     preprocessor = VCFDataPreprocessor(clinicalfile)
-    datasets = preprocessor.getPatientDataByDataset(dataFolder)
+    datasets = preprocessor.getPatientDataByDataset(dataFolder, forTraining=True)
     trainer = VCFModelTrainer()
     if not joinAllDatasets:
         for dataset in datasets.values():
