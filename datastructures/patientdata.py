@@ -17,8 +17,11 @@ class PatientData(object):
         self.__flags = None
 
     def get_dataset_origin(self):
-        return self.get_dataset_origin()
-
+        return self.__dataset_origin
+    
+    def get_patients(self):
+        return self.__patients
+    
     def get_ages(self):
         return self.__ages
     
@@ -64,7 +67,7 @@ class PatientData(object):
         else:
             raise Exception("Flags must be a Series")
     
-    def getFullDataframe(self):
+    def getFullDataframe(self, withPatients=True, withFlags=True):
         fulldf = [self.__patients.copy()]
         if self.__ages is not None:
             fulldf.append(self.__ages)
@@ -74,7 +77,10 @@ class PatientData(object):
             fulldf.append(self.__genes_scoring)
         if self.__genes_function_associated is not None:
             fulldf.append(self.__genes_function_associated)
-        if self.__flags is not None:
+        if self.__flags is not None and withFlags:
             fulldf.append(self.__flags)
         fulldf = pd.concat(fulldf, axis=1)
+        if not withPatients:
+            fulldf.drop("Patient", axis=1, inplace=True)
+        fulldf = fulldf.fillna(value=0)
         return fulldf        

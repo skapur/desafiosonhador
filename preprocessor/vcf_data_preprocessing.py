@@ -24,12 +24,20 @@ class VCFDataPreprocessor(object):
         self.__clinicalData.index = self.__clinicalData["Patient"]
         self.__executor = multiprocessing.Pool(processes=multiprocessing.cpu_count()-1)
     
-    def getPatientDataByDataset(self, directoryFolder='/test-data/'):
+    def getClinicalData(self):
+        return self.__clinicalData;
+    
+    def getPatientDataByDataset(self, directoryFolder='/test-data/', useFiltered=False):
         result = {}
         reader = VCFReader()
         
         for dataset in GENOMIC_PROPS.keys():
-            datasetDataframe = self.__clinicalData[self.__clinicalData[GENOMIC_PROPS[dataset]].notnull()]
+            datasetDataframe = self.__clinicalData[self.__clinicalData[GENOMIC_PROPS[dataset]].notnull()].copy()
+            if not useFiltered:
+                datasetDataframe.replace({'.FILTERED': ''}, regex=True, inplace=True)
+            if "HR_FLAG" in datasetDataframe.columns:
+                valid_samples = datasetDataframe["HR_FLAG"] != "CENSORED"
+                datasetDataframe = datasetDataframe[valid_samples]
             if not datasetDataframe.empty:
                 data = PatientData(dataset, datasetDataframe.loc[datasetDataframe.index, "Patient"].copy())
                 data = self.__fillClinicalData(data, datasetDataframe)
@@ -50,6 +58,66 @@ class VCFDataPreprocessor(object):
                 result[dataset] = data
         
         return result
+    
+    def joinDatasetsToSingleDataset(self, datasets):
+        patients = None
+        ages = None
+        iSSs = None
+        genes_scoring = None
+        genes_function_associated = None
+        flags = None
+        
+        for dataset in datasets.values():
+            if patients is None: 
+                patients = dataset.get_patients()
+            else:
+                patients = pd.concat([patients, dataset.get_patients()])
+            if ages is None:
+                ages = dataset.get_ages()
+            else:
+                ages = pd.concat([ages, dataset.get_ages()])
+            if iSSs is None:
+                iSSs = dataset.get_ISSs()
+            else:
+                iSSs = pd.concat([iSSs, dataset.get_ISSs()])
+            if genes_scoring is None:
+                genes_scoring = dataset.get_genes_scoring()
+            else:
+                genes_scoring = pd.concat([genes_scoring, dataset.get_genes_scoring()], axis=1)
+            if genes_function_associated is None:
+                genes_function_associated = dataset.get_genes_scoring()
+            else:
+                genes_function_associated = pd.concat([genes_function_associated, dataset.get_genes_scoring()], axis=1)
+            if flags is None:
+                flags = dataset.get_flags()
+            else:
+                flags = pd.concat([flags, dataset.get_flags()])
+        
+        data = None
+        if patients is not None:
+            patients = patients.groupby(patients.index).first()
+            data = PatientData('ALL', patients)
+            if ages is not None:        
+                ages = ages.groupby(ages.index).first()
+                ages = ages.fillna(value=0)
+                data.set_ages(ages)
+            if iSSs is not None:
+                iSSs = iSSs.groupby(iSSs.index).first()
+                iSSs = iSSs.fillna(value=0)
+                data.set_ISSs(iSSs)
+            if genes_scoring is not None:
+                genes_scoring = genes_scoring.groupby(genes_scoring.columns, axis=1).sum()
+                genes_scoring = genes_scoring.fillna(value=0)
+                data.set_genes_scoring(genes_scoring)
+            if genes_function_associated is not None:
+                genes_function_associated = genes_function_associated.groupby(genes_function_associated.columns, axis=1).sum()
+                genes_function_associated[genes_function_associated > 1] = 1
+                genes_function_associated = genes_function_associated.fillna(value=0)
+                data.set_genes_function_associated(genes_function_associated)
+            if flags is not None:
+                flags = flags.groupby(flags.index).first()
+                data.set_flags(flags)
+        return data
      
     def __fillClinicalData(self, patientdata, datasetDataframe):
         colums = self.__clinicalData.columns
@@ -67,7 +135,9 @@ class VCFDataPreprocessor(object):
             patientdata.set_ISSs(datasetDataframe.loc[datasetDataframe.index, "D_ISS"].copy())
             
         if containsHRFlag:
-            patientdata.set_flags(datasetDataframe.loc[datasetDataframe.index, "HR_FLAG"].copy())
+            flags = datasetDataframe.loc[datasetDataframe.index, "HR_FLAG"].copy()
+            flags = flags == 'TRUE'
+            patientdata.set_flags(flags)
             
         return patientdata
                
@@ -89,8 +159,10 @@ class VCFDataPreprocessor(object):
             return 1;
         if age >=18 and age <35:
             return 2;
-        if age >=35 and age <65:
+        if age >=35 and age <50:
             return 3;
-        if age > 65:
+        if age >= 50 and age <65:
             return 4;
+        if age >=65:
+            return 5;
         

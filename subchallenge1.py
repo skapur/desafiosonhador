@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
 import sys, getopt
-import data_preprocessing as processor
+
+from machinelearning.vcf_model_predictor import VCFModelPredictor
+from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 import pandas as pd
-import pickle
+
+joinALLDatasets = False
 
 trained_Models = {
     'ALL' : {
@@ -51,68 +54,34 @@ def main(argv):
             outputfile = arg
     
     print("Starting reading VCF Files...")
-    processingData = processor.MMChallengeData(inputfile);
-    x, y, modelType = processingData.preprocessPrediction(outputVariable="D_Age");
+    preprocessor = VCFDataPreprocessor(inputfile)
+    datasets = preprocessor.getPatientDataByDataset()
     print("Finished reading VCF Files...")
     
-    print("Starting reading model Files...")
-    f = open(trained_Models[modelType]["__columnsDic"], 'rb')
-    featColumns = pickle.load(f);
-    f.close();
+    predictor = VCFModelPredictor()
     
-    f = open(trained_Models[modelType]["__classifierFilename"], 'rb')
-    clf = pickle.load(f)
-    f.close();
-    
-    print("Finished reading model Files...")
-    print("Starting reducing dataframe for prediction...")
-    x = x.loc[:, featColumns]
-    x = x.fillna(value=0)
-    
-    x, y, z = processor.df_reduce(x, y, fit=False, filename=trained_Models[modelType]["__transformerFilename"])
-    
-    print("Finished reducing dataframe for prediction...")
-    print("Starting to predict labels...")
-    predictions = clf.predict(x)
-    scores = clf.predict_proba(x)[:,1]
-    print("Finished to predict labels...")
-
-    print("Exporting prediction labels to file...")
-    
-    indexingdf = processingData.clinicalData.dropna(
-        subset=["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
-                "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"],
-         how='all')
-    
-    print("There are " + str(len(processingData.clinicalData.index) - len(indexingdf.index)) + " patient rows wihout any WES file, they will be discarded from predictions...")
-    
-    predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=indexingdf.index)
-    
-    information = indexingdf[["Study","Patient"]]
-    outputDF = pd.concat([information, predicted], axis=1)
-    outputDF = outputDF[["Study","Patient", "predictionscore", "highriskflag"]]
-    outputDF.columns = ["study","patient", "predictionscore", "highriskflag"]
-    outputDF.to_csv(outputfile, index = False, sep='\t')
-
+    if not joinALLDatasets:
+        predictedDFs = []
+        for modelType in datasets.keys():
+            X = datasets[modelType].getFullDataframe(False, False)
+            predictions, scores = predictor.generate_predictions_scores(X, modelType)
+            predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), predictions, scores)
+            predictedDF.set_index("patient", drop=False, append=False, inplace=True)
+            predictedDFs.append(predictedDF)
+        
+        outputDF = pd.concat(predictedDFs, axis=1)
+        idx = outputDF.groupby(['patient'], sort=False)['predictionscore'].max() == outputDF['predictionscore']
+        outputDF = outputDF[idx]
+        outputDF.to_csv(outputfile, index=False, sep='\t')
+    else:
+        data = preprocessor.joinDatasetsToSingleDataset(datasets)
+        X = data.getFullDataframe(False, False)
+        predictions, scores = predictor.generate_predictions_scores(X, modelType)
+        outputDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), predictions, scores)
+        outputDF.set_index("patient", drop=False, append=False, inplace=True)
+        outputDF.to_csv(outputfile, index=False, sep='\t')
     print("Sub Challenge 1 prediction finished...")
 
-    '''
-    my_fun = lambda x: processor.df_reduce(x.values.reshape(1, -1), [], fit=False, filename=trained_Models[modelType]["__transformerFilename"])[0]
-    
-    processingData.dataDict = {"genomic" : (x,[],y) }
-    processingData.generateDataTypePresence()
-
-    mod = processor.MMChallengePredictor(
-        mmcdata = processingData,
-        predict_fun = lambda x: clf.predict(x)[0],
-        confidence_fun = lambda x: 1 - min(clf.predict_proba(x)[0]),
-        data_types = ["genomic"],
-        single_vector_apply_fun = my_fun,
-        multiple_vector_apply_fun = lambda x: x)
-    
-    outputDF = mod.predict_dataset()
-    outputDF.to_csv(outputfile, index = False)
-    '''
 
 if __name__ == "__main__":
     main(sys.argv[1:])

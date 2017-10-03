@@ -26,8 +26,12 @@ class VCFModelTrainer(object):
             }
     
     def df_reduce(self, X, y, scaler = None, fts = None, filename = None):
-        scaler.fit(X, y); X = scaler.transform(X) 
-        fts.fit(X, y); X = fts.transform(X)
+        if scaler is not None:
+            scaler.fit(X, y)
+            X = scaler.transform(X)
+        if fts is not None:
+            fts.fit(X, y)
+            X = fts.transform(X)
         if filename is not None: # save the objects to disk
             f = open(filename, 'wb')
             pickle.dump({'scaler': scaler, 'fts': fts}, f)
