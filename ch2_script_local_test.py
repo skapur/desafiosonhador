@@ -28,7 +28,6 @@ Xn = X.dropna(axis = 1)
 y = y == "TRUE"
 y = y.astype(int)
 
-Xm, 
 
 coln = Xn.shape[1]
 from minepy import MINE
