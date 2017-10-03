@@ -5,19 +5,21 @@ import pickle
 import sys
 
 from sklearn.feature_selection import SelectPercentile
-from sklearn.preprocessing import MaxAbsScaler, QuantileTransformer, MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MaxAbsScaler, QuantileTransformer, MinMaxScaler, StandardScaler, Normalizer
+from sklearn.pipeline import Pipeline
 
 #Models
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression, Lasso, SGDClassifier
+from sklearn.svm import SVC,LinearSVC
 from sklearn.neural_network import MLPClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier, AdaBoostClassifier, VotingClassifier
 
 from data_preprocessing import MMChallengeData, MMChallengePredictor
-from genomic_data_test import df_reduce, cross_val_function
+from genomic_data_test import df_reduce, cross_val_function, rnaseq_prepare_data
 
 def report (cv_res):
     print("="*40)
@@ -32,31 +34,27 @@ mmcd = MMChallengeData(clin_file)
 mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder=data_folder, columnNames=None, NARemove=[True, False])
 
 #Transformers
-scl = MaxAbsScaler()
-fts = SelectPercentile(percentile = 30)
+# scl = MaxAbsScaler()
+scl = Pipeline(steps=[('normalizer', Normalizer()),('scale', MaxAbsScaler())])
+fts = SelectPercentile(percentile = 5)
 
 # =========================
 #          RNA-SEQ
 # =========================
 
-#Prepare data
-Xrseq, cdrseq, yrseq = mmcd.dataDict[("RNASeq","gene")]
-Xnrseq = Xrseq.dropna(axis = 1)
-yrseq = yrseq == "TRUE"
-yrseq = yrseq.astype(int)
+RNA_gene, RNA_gene_cd, RNA_gene_output = mmcd.dataDict[("RNASeq", "gene")]
 
-X_rseq_t, y_rseq_t, fts_vector = df_reduce(Xnrseq, yrseq, scl, fts, True, filename = 'transformers_rna_seq.sav')
+X_rseq, y_rseq = rnaseq_prepare_data(RNA_gene, None, RNA_gene_output)
+X_rseq_t, y_rseq_t, fts_vector = df_reduce(X_rseq, y_rseq, scl, fts, True, filename = 'transformers_rna_seq.sav')
 
 # =============================
 #          MICROARRAYS
 # =============================
 
-Xma, cdma, yma = mmcd.dataDict[("MA","gene")]
-Xnma = Xma.dropna(axis = 1)
-yma = yma == "TRUE"
-yma = yma.astype(int)
+MA_gene, MA_gene_cd, MA_gene_output = mmcd.dataDict[("MA", "gene")]
 
-X_ma_t, y_ma_t, fts_vector = df_reduce(Xnma, yma, scl, fts, True, filename = 'transformers_microarrays.sav')
+X_marrays, y_marrays = rnaseq_prepare_data(MA_gene, None, MA_gene_output, axis = 1)
+X_marrays_t, y_marrays_t, fts_vector = df_reduce(X_marrays, y_marrays, scl, fts, True, filename = 'transformers_microarrays.sav')
 
 
 # =============================
@@ -66,21 +64,34 @@ X_ma_t, y_ma_t, fts_vector = df_reduce(Xnma, yma, scl, fts, True, filename = 'tr
 clf1 = LogisticRegression(random_state = 1, solver = 'newton-cg', C = 1, penalty = "l2", tol = 0.001, multi_class = 'multinomial')
 clf2 = RandomForestClassifier(random_state = 1, max_depth = 5, criterion = "entropy", n_estimators = 100)
 clf3 = GaussianNB()
-clf4 = SVC(kernel = "linear", C = 1, probability = True, gamma = 0.0001)
+clf4 = SVC(kernel = "linear", C = 0.5, probability = True, gamma = 0.0001)
 clf5 = MLPClassifier(solver = 'adam', activation = "relu", hidden_layer_sizes = (50,25), alpha = 0.001)
-eclf1 = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2), ('gnb', clf3), ('svm', clf4), ('nnet', clf5)],
-                         voting = 'soft', n_jobs = -1, weights = [2,1,1,5,5])
+eclf1 = VotingClassifier(estimators=[('lr', clf1), ('svm', clf4), ('nnet', clf5)],
+                         voting = 'soft', n_jobs = -1)
 #eclf1 = eclf1.fit(X_rseq_t, y_rseq_t)
 
 #RNA-Seq
 cv = cross_val_function(X_rseq_t, y_rseq_t, clf = eclf1)
-
-#Microarrays
-cv = cross_val_function(X_ma_t, y_ma_t, clf = eclf1)
 report(cv)
 
+#Fit Models
+clf_rseq = eclf1
+clf_rseq.fit(X_rseq_t, y_rseq_t)
+with open("fittedModel_rna_seq.sav", 'wb') as f:
+    pickle.dump(clf_rseq, f)
 
-clf = MLPClassifier(solver = 'adam', activation = "relu", hidden_layer_sizes = (50,25), alpha = 0.001)
+#Microarrays
+cv = cross_val_function(X_marrays_t, y_marrays_t, clf = eclf1)
+report(cv)
+
+#Fit Models
+clf_marrays = eclf1
+clf_marrays.fit(X_marrays_t, y_marrays_t)
+with open("fittedModel_microarrays.sav", 'wb') as f:
+    pickle.dump(clf_marrays, f)
+
+# clf = MLPClassifier(solver = 'adam', activation = "relu", hidden_layer_sizes = (50,25), alpha = 0.001)
+clf = eclf1
 cv = cross_val_function(X_rseq_t, y_rseq_t, clf = clf)
 report(cv)
 

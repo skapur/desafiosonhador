@@ -1,0 +1,304 @@
+
+========= ENSEMBLE =========
+
+RNA-SEQ
+
+RNA-Seq (genes, p = 0.3, decision trees)
+==============================
+AdaBoostClassifier
+****Results****
+Fit time: 15.6883 (+/- 0.0658)
+Score time: 0.1063 (+/- 0.0025)
+Test accuracy: 0.7468 (+/- 0.0181)
+Train accuracy: 0.9984 (+/- 0.0015)
+Test F-score: 0.2839 (+/- 0.0636)
+Train F-score: 0.9964 (+/- 0.0034)
+Test log-loss: 0.6651 (+/- 0.0035)
+Train log-loss: 0.6332 (+/- 0.0089)
+Test recall: 0.2286 (+/- 0.0580)
+Train recall: 0.9929 (+/- 0.0067)
+==============================
+==============================
+AdaBoostClassifier with GaussianNB (n = 10)
+****Results****
+Fit time: 2.1269 (+/- 0.0123)
+Score time: 0.9779 (+/- 0.0428)
+Test accuracy: 0.6426 (+/- 0.0855)
+Train accuracy: 0.8642 (+/- 0.1982)
+Test F-score: 0.4064 (+/- 0.0708)
+Train F-score: 0.8265 (+/- 0.1895)
+Test log-loss: 4.4069 (+/- 1.9050)
+Train log-loss: 1.5992 (+/- 2.3698)
+Test recall: 0.5714 (+/- 0.1930)
+Train recall: 0.9661 (+/- 0.0679)
+==============================
+==============================
+AdaBoostClassifier with GaussianNB (n = 50)
+****Results****
+Fit time: 10.2937 (+/- 0.2052)
+Score time: 4.8547 (+/- 0.1399)
+Test accuracy: 0.5679 (+/- 0.1683)
+Train accuracy: 0.7888 (+/- 0.2861)
+Test F-score: 0.3920 (+/- 0.0789)
+Train F-score: 0.7901 (+/- 0.2640)
+Test log-loss: 2.9270 (+/- 2.1385)
+Train log-loss: 1.1530 (+/- 1.9290)
+Test recall: 0.6286 (+/- 0.2354)
+Train recall: 1.0000 (+/- 0.0000)
+==============================
+==============================
+AdaBoostClassifier with LogisticRegression (n = 50)
+****Results****
+Fit time: 4.7774 (+/- 0.4465)
+Score time: 0.1663 (+/- 0.0189)
+Test accuracy: 0.7769 (+/- 0.0113)
+Train accuracy: 0.9074 (+/- 0.0088)
+Test F-score: 0.1825 (+/- 0.0569)
+Train F-score: 0.7370 (+/- 0.0309)
+Test log-loss: 0.6690 (+/- 0.0017)
+Train log-loss: 0.6534 (+/- 0.0026)
+Test recall: 0.1143 (+/- 0.0416)
+Train recall: 0.5875 (+/- 0.0372)
+==============================
+
+
+MICROARRAYS
+
+MA (genes, p = 0.3, decision trees)
+==============================
+AdaBoostClassifier
+****Results****
+Fit time: 19.8727 (+/- 0.4167)
+Score time: 0.1255 (+/- 0.0065)
+Test accuracy: 0.5771 (+/- 0.0932)
+Train accuracy: 0.9684 (+/- 0.0137)
+Test F-score: 0.2619 (+/- 0.2201)
+Train F-score: 0.9438 (+/- 0.0250)
+Test log-loss: 0.6676 (+/- 0.0410)
+Train log-loss: 0.6343 (+/- 0.0242)
+Test recall: 0.3869 (+/- 0.4047)
+Train recall: 0.9190 (+/- 0.0350)
+==============================
+==============================
+AdaBoostClassifier with GaussianNB (n = 10)
+****Results****
+Fit time: 2.3570 (+/- 0.0169)
+Score time: 1.1090 (+/- 0.0268)
+Test accuracy: 0.6261 (+/- 0.1673)
+Train accuracy: 0.7240 (+/- 0.0260)
+Test F-score: 0.0903 (+/- 0.1805)
+Train F-score: 0.1333 (+/- 0.2422)
+Test log-loss: 2.5315 (+/- 1.8211)
+Train log-loss: 1.5250 (+/- 1.3406)
+Test recall: 0.2000 (+/- 0.4000)
+Train recall: 0.1292 (+/- 0.2456)
+==============================
+==============================
+AdaBoostClassifier with LogisticRegression (n = 50)
+****Results****
+Fit time: 10.3431 (+/- 0.7977)
+Score time: 0.3598 (+/- 0.0199)
+Test accuracy: 0.6420 (+/- 0.0848)
+Train accuracy: 0.8386 (+/- 0.0049)
+Test F-score: 0.2452 (+/- 0.2528)
+Train F-score: 0.6747 (+/- 0.0149)
+Test log-loss: 0.6863 (+/- 0.0057)
+Train log-loss: 0.6780 (+/- 0.0025)
+Test recall: 0.3554 (+/- 0.4174)
+Train recall: 0.5775 (+/- 0.0332)
+==============================
+
+
+
+
+==============================
+GradientBoostingClassifier (RNA-Seq, genes)
+****Results****
+Fit time: 29.6348 (+/- 0.3596)
+Score time: 0.0152 (+/- 0.0008)
+Test accuracy: 0.7548 (+/- 0.0272)
+Train accuracy: 1.0000 (+/- 0.0000)
+Test F-score: 0.2144 (+/- 0.0212)
+Train F-score: 1.0000 (+/- 0.0000)
+Test log-loss: 0.5918 (+/- 0.0603)
+Train log-loss: 0.0944 (+/- 0.0056)
+Test recall: 0.1500 (+/- 0.0143)
+Train recall: 1.0000 (+/- 0.0000)
+==============================
+
+
+
+===================== ENSEMBLE (Voting) ==================
+
+RNA-SEQ
+
+Percentile = 30
+
+clf1 = LogisticRegression(random_state = 1)
+clf2 = RandomForestClassifier(random_state = 1)
+clf3 = GaussianNB()
+========================================
+fit_time: 1.3302 (+/- 0.0431)
+score_time: 0.1043 (+/- 0.0071)
+test_accuracy: 0.7691 (+/- 0.0320)
+train_accuracy: 0.9596 (+/- 0.0046)
+test_recall: 0.2714 (+/- 0.1229)
+train_recall: 0.8230 (+/- 0.0227)
+test_f1: 0.3333 (+/- 0.1312)
+train_f1: 0.9000 (+/- 0.0125)
+test_neg_log_loss: -0.5049 (+/- 0.0623)
+train_neg_log_loss: -0.1353 (+/- 0.0033)
+test_precision: 0.4443 (+/- 0.1372)
+train_precision: 0.9935 (+/- 0.0108)
+test_roc_auc: 0.7122 (+/- 0.0768)
+train_roc_auc: 0.9967 (+/- 0.0009)
+========================================
+
+
+clf1 = LogisticRegression(random_state = 1)
+clf2 = RandomForestClassifier(random_state = 1)
+clf3 = GaussianNB()
+clf4 = SVC()
+clf5 = MLPClassifier()
+========================================
+fit_time: 36.0269 (+/- 10.3207)
+score_time: 1.0724 (+/- 0.0285)
+test_accuracy: 0.7880 (+/- 0.0274)
+train_accuracy: 0.9791 (+/- 0.0161)
+test_recall: 0.1571 (+/- 0.1097)
+train_recall: 0.9056 (+/- 0.0726)
+test_f1: 0.2318 (+/- 0.1541)
+train_f1: 0.9488 (+/- 0.0434)
+test_neg_log_loss: -0.4815 (+/- 0.0477)
+train_neg_log_loss: -0.1574 (+/- 0.0288)
+test_precision: 0.5000 (+/- 0.3265)
+train_precision: 1.0000 (+/- 0.0000)
+test_roc_auc: 0.7295 (+/- 0.0814)
+train_roc_auc: 0.9999 (+/- 0.0004)
+========================================
+
+
+clf1 = LogisticRegression(random_state = 1, solver = 'newton-cg', C = 1, penalty = "l2", tol = 0.001, multi_class = 'multinomial')
+clf2 = RandomForestClassifier(random_state = 1, max_depth = 5, criterion = "entropy", n_estimators = 100)
+clf3 = GaussianNB()
+clf4 = SVC(kernel = "linear", C = 1, probability = True, gamma = 0.0001)
+clf5 = MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (250,), alpha = 0.001)
+========================================
+fit_time: 3.2775 (+/- 0.1539)
+score_time: 0.1264 (+/- 0.0045)
+test_accuracy: 0.8061 (+/- 0.0440)
+train_accuracy: 0.9990 (+/- 0.0013)
+test_recall: 0.5714 (+/- 0.1195)
+train_recall: 0.9968 (+/- 0.0039)
+test_f1: 0.6534 (+/- 0.0893)
+train_f1: 0.9984 (+/- 0.0020)
+test_neg_log_loss: -0.4272 (+/- 0.0470)
+train_neg_log_loss: -0.1256 (+/- 0.0078)
+test_precision: 0.7817 (+/- 0.0829)
+train_precision: 1.0000 (+/- 0.0000)
+test_roc_auc: 0.8767 (+/- 0.0362)
+train_roc_auc: 1.0000 (+/- 0.0000)
+========================================
+
+
+
+clf4 = SVC(kernel = "linear", C = 1, probability = True, gamma = 0.0001)
+clf5 = MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (250,), alpha = 0.001)
+========================================
+fit_time: 24.1550 (+/- 8.1261)
+score_time: 1.1590 (+/- 0.0161)
+test_accuracy: 0.7580 (+/- 0.0370)
+train_accuracy: 1.0000 (+/- 0.0000)
+test_recall: 0.2000 (+/- 0.1050)
+train_recall: 1.0000 (+/- 0.0000)
+test_f1: 0.2603 (+/- 0.1358)
+train_f1: 1.0000 (+/- 0.0000)
+test_neg_log_loss: -0.5604 (+/- 0.0791)
+train_neg_log_loss: -0.1204 (+/- 0.0162)
+test_precision: 0.3850 (+/- 0.2093)
+train_precision: 1.0000 (+/- 0.0000)
+test_roc_auc: 0.6484 (+/- 0.0959)
+train_roc_auc: 1.0000 (+/- 0.0000)
+========================================
+
+
+
+
+
+
+Percentile = 20
+
+clf1 = LogisticRegression(random_state = 1, solver = 'newton-cg', C = 1, penalty = "l2", tol = 0.001, multi_class = 'multinomial')
+clf2 = RandomForestClassifier(random_state = 1, max_depth = 5, criterion = "entropy", n_estimators = 100)
+clf3 = GaussianNB()
+
+========================================
+fit_time: 5.8174 (+/- 0.4208)
+score_time: 0.1204 (+/- 0.0120)
+test_accuracy: 0.7739 (+/- 0.0403)
+train_accuracy: 0.9168 (+/- 0.0048)
+test_recall: 0.3714 (+/- 0.1309)
+train_recall: 0.6325 (+/- 0.0216)
+test_f1: 0.4133 (+/- 0.1156)
+train_f1: 0.7710 (+/- 0.0162)
+test_neg_log_loss: -0.4719 (+/- 0.0364)
+train_neg_log_loss: -0.2567 (+/- 0.0037)
+test_precision: 0.4909 (+/- 0.1069)
+train_precision: 0.9876 (+/- 0.0052)
+test_roc_auc: 0.7358 (+/- 0.0732)
+train_roc_auc: 0.9514 (+/- 0.0023)
+========================================
+
+clf1 = LogisticRegression(random_state = 1, solver = 'newton-cg', C = 1, penalty = "l2", tol = 0.001, multi_class = 'multinomial')
+clf2 = RandomForestClassifier(random_state = 1, max_depth = 5, criterion = "entropy", n_estimators = 100)
+clf3 = GaussianNB()
+clf4 = SVC(kernel = "linear", C = 1, probability = True, gamma = 0.0001)
+clf5 = MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (250,), alpha = 0.001)
+weights = [2,1,1,5,5]
+========================================
+fit_time: 19.2921 (+/- 4.0264)
+score_time: 0.8588 (+/- 0.0473)
+test_accuracy: 0.7722 (+/- 0.0305)
+train_accuracy: 1.0000 (+/- 0.0000)
+test_recall: 0.2143 (+/- 0.1059)
+train_recall: 1.0000 (+/- 0.0000)
+test_f1: 0.2842 (+/- 0.1331)
+train_f1: 1.0000 (+/- 0.0000)
+test_neg_log_loss: -0.5079 (+/- 0.0555)
+train_neg_log_loss: -0.1600 (+/- 0.0102)
+test_precision: 0.4469 (+/- 0.2020)
+train_precision: 1.0000 (+/- 0.0000)
+test_roc_auc: 0.7034 (+/- 0.0864)
+train_roc_auc: 1.0000 (+/- 0.0000)
+========================================
+
+
+
+MICROARAYS
+
+clf1 = LogisticRegression(random_state = 1, solver = 'newton-cg', C = 1, penalty = "l2", tol = 0.001, multi_class = 'multinomial')
+clf2 = RandomForestClassifier(random_state = 1, max_depth = 5, criterion = "entropy", n_estimators = 100)
+clf3 = GaussianNB()
+clf4 = SVC(kernel = "linear", C = 1, probability = True, gamma = 0.0001)
+clf5 = MLPClassifier(solver = 'adam', activation = "relu", hidden_layer_sizes = (50,25), alpha = 0.001)
+weights = [2,1,1,5,5]
+========================================
+fit_time: 44.7296 (+/- 1.5428)
+score_time: 1.3436 (+/- 0.0702)
+test_accuracy: 0.6925 (+/- 0.0796)
+train_accuracy: 0.9424 (+/- 0.0109)
+test_recall: 0.3972 (+/- 0.3729)
+train_recall: 0.8064 (+/- 0.0386)
+test_f1: 0.3420 (+/- 0.2391)
+train_f1: 0.8900 (+/- 0.0231)
+test_neg_log_loss: -0.8066 (+/- 0.5272)
+train_neg_log_loss: -0.2362 (+/- 0.0230)
+test_precision: 0.5215 (+/- 0.3664)
+train_precision: 0.9944 (+/- 0.0063)
+test_roc_auc: 0.6554 (+/- 0.1626)
+train_roc_auc: 0.9863 (+/- 0.0043)
+========================================
+
+
+
+
