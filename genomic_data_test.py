@@ -27,11 +27,12 @@ from data_preprocessing import MMChallengeData, MMChallengePredictor
 
 def cross_val_function(X, y, clf):
     print("Cross validating "+type(clf).__name__)
+    pipeline_factory = lambda clf: Pipeline(steps=[("classify", clf)])
     return cross_validate(pipeline_factory(clf), X, y, scoring=["accuracy", "recall", "f1", "neg_log_loss", "precision", "roc_auc"], cv=10, verbose=1)
 
 
 from numpy import where
-report = lambda cvr : '\n'.join([str(name + " : " + str(np.mean(array)) + " +/- " + str(np.std(array))) for name, array in cvr.items()])
+report = lambda cvr : ' \n '.join([str(name + " : " + str(np.mean(array)) + " +/- " + str(np.std(array))) for name, array in cvr.items()])
 
 
 def rnaseq_prepare_data(X_gene, X_trans, y_orig, axis = 0):
@@ -218,12 +219,15 @@ if __name__ == '__main__':
     crossValEnseble(X_rseq_t, y_rseq_t, clf = SVC(probability = True, kernel = 'linear'), n = 1)
     crossValEnseble(X_rseq_t, y_rseq_t, clf = GaussianNB(), n = 50)
     crossValEnseble(X_rseq_t, y_rseq_t, clf = LogisticRegression(), n = 50)
+    crossValEnseble(X_rseq_t, y_rseq_t, clf = LogisticRegression(), n = 50)
+    estimator = BaggingClassifier(KNeighborsClassifier(), max_samples = 0.5, max_features = 0.5)
 
 
     clf_rseq = AdaBoostClassifier(base_estimator = LogisticRegression(), n_estimators = 50)
     clf_rseq.fit(X_rseq_t, y_rseq_t)
     with open("fittedModel_logreg_ensemble_rna_seq.sav", 'wb') as f:
         pickle.dump(clf_rseq, f)
+
 
     # with open('transformers_rna_seq.sav', 'rb') as f:
     #     trf_rseq = pickle.load(f)
