@@ -65,9 +65,9 @@ def main(argv):
 
         print(str(len(overlapped_features))+" "+"overlapped features.")
         print("Dataframe has "+str(len(df[0].columns.tolist())))
-        #print("Dataframe columns: "+str(df[0].shape[1]))
-        #print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
-        #print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
+        print("Dataframe columns: "+str(df[0].shape[1]))
+        print("Full NA columns: "+str(df[0].isnull().all().sum() > 0))
+        print("Partial NA columns: " + str(df[0].isnull().any().sum() > 0))
         print("*"*80)
 
     # ======== RNA-SEQ ========
@@ -140,16 +140,18 @@ def main(argv):
     final_res['highriskflag'] = final_res['highriskflag'] == 1
     final_res['highriskflag'] = final_res['highriskflag'].apply(lambda x: str(x).upper())
 
-    print("Writing prediction matrix")
-    final_res.to_csv(sys.argv[2], index = False, sep = '\t')
-
     print("Any failed prediction column in the prediction matrix?")
-    print(str(final_res.isnull().any()))
+    print(str(final_res.isnull().sum()))
     print("All failed prediction column in the prediction matrix?")
-    print(str(final_res.isnull().all()))
+    print(str(final_res.isnull().sum()))
 
     final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0)
     final_res["highriskflag"] = final_res["highriskflag"].fillna(value=False)
+
+    print("Writing prediction matrix")
+    final_res.to_csv(sys.argv[2], index = False, sep = '\t')
+
+
 
     prediction_report(final_res)
     print("Done!")
