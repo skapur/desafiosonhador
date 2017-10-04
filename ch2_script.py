@@ -64,6 +64,7 @@ def main(argv):
         overlapped_features = training_features & validation_features
 
         print(str(len(overlapped_features))+" "+"overlapped features.")
+        print("Dataframe has "+len(df[0].columns.tolist()))
         #print("Dataframe columns: "+str(df[0].shape[1]))
         #print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
         #print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
