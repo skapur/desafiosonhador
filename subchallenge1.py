@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, getopt
+import sys, getopt, os
 
 from machinelearning.vcf_model_predictor import VCFModelPredictor
 from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
@@ -23,6 +23,8 @@ def prediction_report(df):
     print("True predictions: "+str(num_trues))
 
 def main(argv):
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(dir_path)
     inputfile = ''
     outputfile = ''
     try:
