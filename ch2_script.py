@@ -97,8 +97,8 @@ def main(argv):
             predict_fun = lambda x: clf_rseq.predict(x)[0],
             confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
             data_types = [("RNASeq", "gene")],
-            single_vector_apply_fun = lambda x: x,
-            multiple_vector_apply_fun = mv_fun_rseq
+            single_vector_apply_fun = mv_fun_rseq,
+            multiple_vector_apply_fun = lambda x: x
     )
     res_rseq = mod_rseq.predict_dataset()
 
