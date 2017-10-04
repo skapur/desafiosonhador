@@ -77,7 +77,7 @@ def main(argv):
         trf_rseq = pickle.load(f)
 
     print("Loading RS classifier")
-    with open('/desafiosonhador/fittedModel_logreg_ensemble_rna_seq.sav', 'rb') as f:
+    with open('/desafiosonhador/fittedModel_rna_seq.sav', 'rb') as f:
         clf_rseq = pickle.load(f)
 
     # Redefining scaler for RNA-Seq
@@ -109,7 +109,7 @@ def main(argv):
         trf_marrays = pickle.load(f)
 
     print("Loading MA classifier")
-    with open('/desafiosonhador/fittedModel_logreg_ensemble_microarrays.sav', 'rb') as f:
+    with open('/desafiosonhador/fittedModel_microarrays.sav', 'rb') as f:
         clf_marrays = pickle.load(f)
 
     # Redefining scaler for marrays
