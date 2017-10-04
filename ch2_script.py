@@ -32,7 +32,7 @@ def main(argv):
 
     print("Reading files using information from clinical data")
 
-    with open('/desafiosonhador/colnames.sav','rb') as f:
+    with open('/desafiosonhador/final_colnames.sav','rb') as f:
         colname_dict = pickle.load(f)
 
     col_parse_dict = {
@@ -141,8 +141,6 @@ def main(argv):
     final_res['highriskflag'] = final_res['highriskflag'].apply(lambda x: str(x).upper())
 
     print("Any failed prediction column in the prediction matrix?")
-    print(str(final_res.isnull().sum()))
-    print("All failed prediction column in the prediction matrix?")
     print(str(final_res.isnull().sum()))
 
     final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0)
