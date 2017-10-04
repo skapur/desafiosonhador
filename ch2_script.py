@@ -64,7 +64,7 @@ def main(argv):
         overlapped_features = training_features & validation_features
 
         print(str(len(overlapped_features))+" "+"overlapped features.")
-        print("Dataframe has "+len(df[0].columns.tolist()))
+        print("Dataframe has "+str(len(df[0].columns.tolist())))
         #print("Dataframe columns: "+str(df[0].shape[1]))
         #print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
         #print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
@@ -82,10 +82,10 @@ def main(argv):
         clf_rseq = pickle.load(f)
 
     # Redefining scaler for RNA-Seq
-    rseq_new_scl = MaxAbsScaler()
-    rseq_data = mmcd.dataDict[("RNASeq", "gene")][0]
-    rseq_new_scl.fit(rseq_data)
-    trf_rseq['scaler'] = rseq_new_scl
+    # rseq_new_scl = MaxAbsScaler()
+    # rseq_data = mmcd.dataDict[("RNASeq", "gene")][0]
+    # rseq_new_scl.fit(rseq_data)
+    # trf_rseq['scaler'] = rseq_new_scl
 
 
     mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
@@ -114,10 +114,10 @@ def main(argv):
         clf_marrays = pickle.load(f)
 
     # Redefining scaler for marrays
-    marrays_new_scl = MaxAbsScaler()
-    marrays_data = mmcd.dataDict[("MA", "gene")][0]
-    marrays_new_scl.fit(marrays_data)
-    trf_marrays['scaler'] = marrays_new_scl
+    # marrays_new_scl = MaxAbsScaler()
+    # marrays_data = mmcd.dataDict[("MA", "gene")][0]
+    # marrays_new_scl.fit(marrays_data)
+    # trf_marrays['scaler'] = marrays_new_scl
 
     mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
 
