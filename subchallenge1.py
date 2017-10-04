@@ -6,7 +6,7 @@ from machinelearning.vcf_model_predictor import VCFModelPredictor
 from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 import pandas as pd
 
-joinALLDatasets = False
+joinALLDatasets = True
 
 def prediction_report(df):
     # min, max, IQR, median, mean, Trues
