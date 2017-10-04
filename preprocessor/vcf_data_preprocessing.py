@@ -85,9 +85,9 @@ class VCFDataPreprocessor(object):
             else:
                 genes_scoring = pd.concat([genes_scoring, dataset.get_genes_scoring()], axis=1)
             if genes_function_associated is None:
-                genes_function_associated = dataset.get_genes_scoring()
+                genes_function_associated = dataset.get_genes_function_associated()
             else:
-                genes_function_associated = pd.concat([genes_function_associated, dataset.get_genes_scoring()], axis=1)
+                genes_function_associated = pd.concat([genes_function_associated, dataset.get_genes_function_associated()], axis=1)
             if flags is None:
                 flags = dataset.get_flags()
             else:
