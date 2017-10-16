@@ -11,7 +11,7 @@ class VCFReader(object):
         self.__genes = set()
         self.__genesFunct = set()
         self.__hasheffect = {'HIGH':10000, 'MODERATE':500, 'MODIFIER':30, 'LOW':1}
-        f = open("serialized_models/filteringGenesAndFunctions.pkl", "rb")
+        f = open("serialized_features/filteringGenesAndFunctions.pkl", "rb")
         self.__filtering = pickle.load(f)
         f.close()
     

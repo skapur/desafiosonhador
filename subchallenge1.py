@@ -3,10 +3,12 @@
 import sys, getopt, os
 
 from machinelearning.vcf_model_predictor import VCFModelPredictor
-from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 import pandas as pd
+from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
+from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
-joinALLDatasets = True
+
+joinALLDatasets = False
 
 def prediction_report(df):
     # min, max, IQR, median, mean, Trues
@@ -51,7 +53,9 @@ def main(argv):
     if not joinALLDatasets:
         predictedDFs = []
         for modelType in datasets.keys():
-            X = datasets[modelType].getFullDataframe(False, False)
+            selector = VCFFeaturesSelector(datasets[modelType])
+            dataset = selector.generateFilteredData()
+            X = dataset.getFullDataframe(False, False)
             predictions, scores = predictor.generate_predictions_scores(X, modelType)
             predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), modelType, predictions, scores)
             predictedDF.set_index("patient", drop=False, append=False, inplace=True)

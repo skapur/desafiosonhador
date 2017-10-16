@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from readers.vcfreader import VCFReader
 from datastructures.patientdata import PatientData
+from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
 
 
@@ -15,6 +16,14 @@ GENOMIC_PROPS = {
     "StrelkaIndelsRnaseq" : "RNASeq_mutationFileStrelkaIndel",
     "StrelkasnvsRnaseq" : "RNASeq_mutationFileStrelkaSNV"
 }
+
+CYTOGENETICS_PROPS = ["CYTO_predicted_feature_01","CYTO_predicted_feature_02","CYTO_predicted_feature_03",
+                      "CYTO_predicted_feature_04","CYTO_predicted_feature_05","CYTO_predicted_feature_06",
+                      "CYTO_predicted_feature_07","CYTO_predicted_feature_08","CYTO_predicted_feature_09",
+                      "CYTO_predicted_feature_10","CYTO_predicted_feature_11","CYTO_predicted_feature_12",
+                      "CYTO_predicted_feature_13","CYTO_predicted_feature_14","CYTO_predicted_feature_15",
+                      "CYTO_predicted_feature_16","CYTO_predicted_feature_17","CYTO_predicted_feature_18"
+                      ]
 
 class VCFDataPreprocessor(object):
     
@@ -55,16 +64,30 @@ class VCFDataPreprocessor(object):
                 data.set_genes_scoring(vcfGenesScoreDF)
                 vcfGenesFunctDF = self.__tranfromVCFDictToVCFDataframe(vcfgenesfunctiondict, datasetDataframe, GENOMIC_PROPS[dataset])
                 data.set_genes_function_associated(vcfGenesFunctDF)
+                data.set_cytogenetic_features(datasetDataframe[CYTOGENETICS_PROPS])
+                
                 result[dataset] = data
-        
+
         return result
     
+
+    def filterFeatureGroupsInDatasets(self, datasets):
+        for datasetkey in datasets.keys():
+            dataset = datasets[datasetkey]
+            selector = VCFFeaturesSelector(dataset)
+            datasets[datasetkey] = selector.generateFilteredData()
+        
+        return datasets
+
     def joinDatasetsToSingleDataset(self, datasets):
+        datasets = self.filterFeatureGroupsInDatasets(datasets)
+        
         patients = None
         ages = None
         iSSs = None
         genes_scoring = None
         genes_function_associated = None
+        cytogenetic_features = None
         flags = None
         
         for dataset in datasets.values():
@@ -88,6 +111,10 @@ class VCFDataPreprocessor(object):
                 genes_function_associated = dataset.get_genes_function_associated()
             else:
                 genes_function_associated = pd.concat([genes_function_associated, dataset.get_genes_function_associated()], axis=1)
+            if cytogenetic_features is None:
+                cytogenetic_features = dataset.get_cytogenetic_features()
+            else:
+                cytogenetic_features = pd.concat([cytogenetic_features, dataset.get_cytogenetic_features()])
             if flags is None:
                 flags = dataset.get_flags()
             else:
@@ -114,6 +141,10 @@ class VCFDataPreprocessor(object):
                 genes_function_associated[genes_function_associated > 1] = 1
                 genes_function_associated = genes_function_associated.fillna(value=0)
                 data.set_genes_function_associated(genes_function_associated)
+            if cytogenetic_features is not None:
+                cytogenetic_features = cytogenetic_features.groupby(cytogenetic_features.index).first()
+                cytogenetic_features = cytogenetic_features.fillna(value=0)
+                data.set_cytogenetic_features(cytogenetic_features)
             if flags is not None:
                 flags = flags.groupby(flags.index).first()
                 data.set_flags(flags)
@@ -157,12 +188,14 @@ class VCFDataPreprocessor(object):
             return 0;
         if age < 18:
             return 1;
-        if age >=18 and age <35:
+        if age >=18 and age <30:
             return 2;
-        if age >=35 and age <50:
+        if age >=30 and age <40:
             return 3;
+        if age >= 40 and age <50:
+            return 4
         if age >= 50 and age <65:
-            return 4;
-        if age >=65:
             return 5;
+        if age >=65:
+            return 6;
         

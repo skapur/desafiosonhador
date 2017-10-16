@@ -25,7 +25,10 @@ class VCFModelTrainer(object):
             'bagging': BaggingClassifier(max_samples = 1, bootstrap = True)
             }
     
-    def df_reduce(self, X, y, scaler = None, fts = None, filename = None):
+    def df_reduce(self, X, y, variance = None, scaler = None, fts = None, filename = None):
+        if variance is not None:
+            variance.fit(X, y)
+            X = variance.transform(X)
         if scaler is not None:
             scaler.fit(X, y)
             X = scaler.transform(X)
@@ -34,7 +37,7 @@ class VCFModelTrainer(object):
             X = fts.transform(X)
         if filename is not None: # save the objects to disk
             f = open(filename, 'wb')
-            pickle.dump({'scaler': scaler, 'fts': fts}, f)
+            pickle.dump({'variance':variance, 'scaler': scaler, 'fts': fts}, f)
             f.close()
         return X, y, fts.get_support(True)
     
@@ -46,24 +49,19 @@ class VCFModelTrainer(object):
         if method in self.__methods.keys():
             clf = self.__methods[method]
             name = clf.__class__.__name__
-            mscore = ['accuracy', 'f1', 'neg_log_loss', 'recall']
+            mscore = ["accuracy", "precision", "recall", "f1", "roc_auc", "neg_log_loss"]
             scores = cross_validate(clf, X, y, cv = folds, scoring = mscore)
-            print("="*30)
-            print(name)
-            print('****Results****')
-            print('Fit time: %0.4f (+/- %0.4f)' % (np.mean(scores['fit_time']), np.std(scores['fit_time'])))
-            print('Score time: %0.4f (+/- %0.4f)' % (np.mean(scores['score_time']), np.std(scores['score_time'])))
-            print('Test accuracy: %0.4f (+/- %0.4f)' % (np.mean(scores['test_accuracy']), np.std(scores['test_accuracy'])))
-            print('Train accuracy: %0.4f (+/- %0.4f)' % (np.mean(scores['train_accuracy']), np.std(scores['train_accuracy'])))
-            print('Test F-score: %0.4f (+/- %0.4f)' % (np.mean(scores['test_f1']), np.std(scores['test_f1'])))
-            print('Train F-score: %0.4f (+/- %0.4f)' % (np.mean(scores['train_f1']), np.std(scores['train_f1'])))
-            print('Test log-loss: %0.4f (+/- %0.4f)' % (-np.mean(scores['test_neg_log_loss']), np.std(scores['test_neg_log_loss'])))
-            print('Train log-loss: %0.4f (+/- %0.4f)' % (-np.mean(scores['train_neg_log_loss']), np.std(scores['train_neg_log_loss'])))
-            print('Test recall: %0.4f (+/- %0.4f)' % (np.mean(scores['test_recall']), np.std(scores['test_recall'])))
-            print('Train recall: %0.4f (+/- %0.4f)' % (np.mean(scores['train_recall']), np.std(scores['train_recall'])))
-            print("="*30)
+            self.__report_CV(name, scores)
         else:
             print("Model method not correct!")
+    
+    def __report_CV(self, name, scores):
+        print("="*40)
+        print(name)
+        print('****Results****')
+        for name, array in scores.items():
+            print(str(name) + ": %0.4f (+/- %0.4f)" % (np.mean(array), np.std(array)))
+        print("="*40)
         
     def trainModel(self, method, X, y):
         if method in self.__methods.keys():

@@ -1,0 +1,90 @@
+PRE-Selection of features (muctec):
+    
+    genesScoring:
+    model=SVM
+    fts1=2%
+    fts2=95%
+    f1score=89%
+    
+    genesFunctionAssociated:
+    model=SVM
+    fts1 = 1%
+    fts2 = 23%
+    f1score =91%
+      
+    cytogeneticFeatures:
+    model=SVM
+    fts1=10
+    f1score = 3% (max)
+    
+            
+PRE-Selection of features (strelkaindel):
+    
+    genesScoring:
+    model=SVM
+    fts1=10%
+    f1score=79%
+    
+    genesFunctionAssociated:
+    model=SVM
+    fts1 = 3%
+    fts2 = 76%
+    f1score =80%
+      
+    cytogeneticFeatures:
+    model=SVM
+    fts1=10
+    f1score = 3% (max)
+    
+    
+PRE-Selection of features (strelkasnv):
+    
+    genesScoring:
+    model=SVM
+    fts1=3%
+    fts2=80%
+    f1score=80%
+    
+    genesFunctionAssociated:
+    model=SVM
+    fts1 = 2%
+    fts2 = 71%
+    f1score =82%
+      
+    cytogeneticFeatures:
+    model=SVM
+    fts1=10
+    f1score = 3% (max)
+
+
+Actual best models:
+
+USING PRE-SELECTION
+
+    MuTectsnvs: 
+        - variance: None;
+        - scaler: StandardScaler()
+        - fts: SelectPercentile(percentile=40)
+        - model: svm
+        - f-score:95%
+        
+    StrelkaIndels:
+        - variance: None;
+        - scaler: StandardScaler()
+        - fts: SelectPercentile(percentile=35)
+        - model: svm
+        - f-score:82%
+    
+    Strelkasnvs:
+        - variance: None;
+        - scaler: StandardScaler()
+        - fts: SelectPercentile(percentile=40)
+        - model: svm 
+        - f-score:87%
+        
+    ALL:
+        - variance: None;
+        - scaler: StandardScaler()
+        - fts: SelectPercentile(percentile=28)
+        - model: svm 
+        - f-score:91%

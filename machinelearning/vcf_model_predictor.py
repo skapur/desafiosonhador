@@ -77,8 +77,10 @@ class VCFModelPredictor(object):
         try: # load the objects from disk
             f = open(filename, 'rb')
             dic = pickle.load(f)
-            scaler = dic['scaler']; fts = dic['fts']
+            variance = dic['variance']; scaler = dic['scaler']; fts = dic['fts']
             f.close()
+            if variance is not None:
+                X = variance.transform(X)
             if scaler is not None:
                 X = scaler.transform(X)
             if fts is not None:
