@@ -8,7 +8,7 @@ from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
 
-joinALLDatasets = False
+joinALLDatasets = True
 
 def prediction_report(df):
     # min, max, IQR, median, mean, Trues

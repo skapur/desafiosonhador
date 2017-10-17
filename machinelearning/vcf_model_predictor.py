@@ -43,7 +43,7 @@ class VCFModelPredictor(object):
                 "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"]
         }
     
-    def generate_predictions_scores(self, x, modelType):
+    def generate_predictions_scores(self, dataset, modelType):
         if modelType in self.__exploited_models.keys():
             modelType = self.__exploited_models[modelType]
         
@@ -58,19 +58,32 @@ class VCFModelPredictor(object):
         
         print("Finished reading model Files...")
         print("Starting reducing dataframe for prediction...")
-        x = x.loc[:, featColumns]
-        print("Overlapping columns from prediction data")
-        print(x.isnull().all().value_counts())
-        x = x.fillna(value=0)
+        dataset = dataset.loc[:, featColumns]
+        print("Overlapping columns from prediction data for reducion")
+        valuecounts = dataset.isnull().all().value_counts()
+        print(valuecounts)
+        print("Prediction Columns Size for reducion: " + str(len(dataset.columns)))
+        x = dataset.fillna(value=0)
         
         x, z = self.__df_reduce(x, filename=self.__trained_Models[modelType]["__transformerFilename"])
+        
+        print("Reduced column size: " + str(len(z)))
+        reducedDataset = dataset[dataset.columns[z]]
+        print("Columns selected on reduced dataset: " + str(reducedDataset.columns))
+        columns = reducedDataset.columns[reducedDataset.isnull().all()]
+        print("NaN columns after reducion:")
+        print(columns)
+        if len(columns) != 0:
+            print("Overlap is: " + str(((len(z)-len(columns))/len(z))*100) + "%")
+        else:
+            print("Overlap is 100% don't have NaN columns on reduced dataset!")
         
         print("Finished reducing dataframe for prediction...")
         print("Starting to predict labels...")
         predictions = clf.predict(x)
         scores = clf.predict_proba(x)[:,1]
         print("Finished to predict labels using model "+str(modelType)+"...")
-        
+        print("="*40)
         return predictions, scores
     
     def __df_reduce(self, X, filename = None):
