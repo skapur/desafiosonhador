@@ -1,3 +1,7 @@
+import sys
+import os.path
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import pickle
 
 from readers.vcfreader import VCFReader
@@ -28,9 +32,10 @@ def loadcolumns():
     print(len(intersected))
 
 def getAllFunctions():
-    submissionfile = '/home/tiagoalves/rrodrigues/globalClinTraining.csv'
-    directoryFolder ='/home/tiagoalves/rrodrigues/link-data/'
+    submissionfile = '/home/dreamchallenge/link-data/globalClinTraining.csv'
+    directoryFolder ='/home/dreamchallenge/link-data/'
     clinicalData = pd.read_csv(submissionfile)
+    clinicalData.replace({'.FILTERED': ''}, regex=True, inplace=True)
     clinicalData["Patient Index"] = clinicalData.index
     clinicalData.index = clinicalData["Patient"]
     filenames = None
@@ -48,13 +53,13 @@ def getAllFunctions():
     paths = [ path.join(directoryFolder, f) for f in filenames.index]
     reader = VCFReader()
     print("reading")
-    f = open("/home/tiagoalves/rrodrigues/outputinfo.txt", 'w')
+    f = open("/home/dreamchallenge/outputinfo.txt", 'w')
     reader.getAllFunctionsWithTrueAndFalses(paths, filenames["HR_FLAG"], f)
     print("Finished")
     f.close()
     
 def getGenesAndFunctions():
-    outputFile = '/home/tiagoalves/rrodrigues/outputinfo.txt'
+    outputFile = '/home/dreamchallenge/outputinfo.txt'
     with open(outputFile) as f:
         content = f.readlines()
 
@@ -70,7 +75,7 @@ def getGenesAndFunctions():
         genes.add(splited[0])
         functions.add(splited[1])
     
-    f = open("/home/tiagoalves/rrodrigues/filteringGenesAndFunctions.pkl", "wb")
+    f = open("/home/dreamchallenge/filteringGenesAndFunctions.pkl", "wb")
     pickle.dump({"genes": genes, "functions": functions}, f)
     f.close()
     
@@ -79,4 +84,5 @@ def getGenesAndFunctions():
     
 
 if __name__ == '__main__':
+    getAllFunctions()
     getGenesAndFunctions()
