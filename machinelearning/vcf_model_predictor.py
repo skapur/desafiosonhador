@@ -70,14 +70,6 @@ class VCFModelPredictor(object):
         print("Reduced column size: " + str(len(z)))
         reducedDataset = dataset[dataset.columns[z]]
         print("Columns selected on reduced dataset: " + str(reducedDataset.columns))
-        columns = reducedDataset.columns[reducedDataset.isnull().all()]
-        print("NaN columns after reducion:")
-        print(columns)
-        if len(columns) != 0:
-            print("Overlap is: " + str(((len(z)-len(columns))/len(z))*100) + "%")
-        else:
-            print("Overlap is 100% don't have NaN columns on reduced dataset!")
-        
         print("Finished reducing dataframe for prediction...")
         print("Starting to predict labels...")
         predictions = clf.predict(x)

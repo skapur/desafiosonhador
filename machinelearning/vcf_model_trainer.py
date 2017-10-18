@@ -26,6 +26,7 @@ class VCFModelTrainer(object):
             }
     
     def df_reduce(self, X, y, variance = None, scaler = None, fts = None, filename = None):
+        z = None
         if variance is not None:
             variance.fit(X, y)
             X = variance.transform(X)
@@ -35,11 +36,12 @@ class VCFModelTrainer(object):
         if fts is not None:
             fts.fit(X, y)
             X = fts.transform(X)
+            z = fts.get_support(True)
         if filename is not None: # save the objects to disk
             f = open(filename, 'wb')
             pickle.dump({'variance':variance, 'scaler': scaler, 'fts': fts}, f)
             f.close()
-        return X, y, fts.get_support(True)
+        return X, y, z
     
     def testAllMethodsCrossValidation(self, X, y, folds=10):
         for method in self.__methods.keys():
