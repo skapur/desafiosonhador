@@ -26,19 +26,22 @@ class VCFReader(object):
         vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
         for record in vcfrecords:
             if 'ANN' in record.INFO.keys():
-                firstann = record.INFO['ANN'][0]
-                firstann = firstann.split('|')
-                gene_instance = firstann[3]
-                score_instance = self.__hasheffect[firstann[2]]
-                functionAnnotation = firstann[1]
-                if gene_instance:
-                    self.__genes.add(gene_instance)
-                    if functionAnnotation in self.__filtering["functions"] and gene_instance in self.__filtering["genes"]:
-                        gene_function[gene_instance+"_"+functionAnnotation] = 1
-                    if gene_instance in genetoscore:
-                        genetoscore[gene_instance] = genetoscore[gene_instance] + score_instance
-                    else:
-                        genetoscore[gene_instance] = score_instance
+                ann = record.INFO['ANN']
+                memorized_geneinstances = set()
+                for firstann in ann:
+                    firstann = firstann.split('|')
+                    gene_instance = firstann[3]
+                    score_instance = self.__hasheffect[firstann[2]]
+                    functionAnnotation = firstann[1]
+                    if gene_instance and gene_instance not in memorized_geneinstances:
+                        memorized_geneinstances.add(gene_instance)
+                        self.__genes.add(gene_instance)
+                        if functionAnnotation in self.__filtering["functions"] and gene_instance in self.__filtering["genes"]:
+                            gene_function[gene_instance+"_"+functionAnnotation] = 1
+                        if gene_instance in genetoscore:
+                            genetoscore[gene_instance] = genetoscore[gene_instance] + score_instance
+                        else:
+                            genetoscore[gene_instance] = score_instance
                     
             #else:
                 #print(record)
@@ -82,10 +85,11 @@ class VCFReader(object):
         vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
         for record in vcfrecords:
             if 'ANN' in record.INFO.keys():
-                firstann = record.INFO['ANN'][0]
-                firstann = firstann.split('|')
-                if firstann[3] and firstann[1]:
-                    functionAnnotations.add(firstann[3]+"_"+firstann[1])
+                ann = record.INFO['ANN']
+                for firstann in ann:
+                    firstann = firstann.split('|')
+                    if firstann[3] and firstann[1]:
+                        functionAnnotations.add(firstann[3]+"_"+firstann[1])
         return functionAnnotations
     
     def readFiles(self, files):
