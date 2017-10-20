@@ -95,5 +95,4 @@ class PatientData(object):
         fulldf = pd.concat(fulldf, axis=1)
         if not withPatients:
             fulldf.drop("Patient", axis=1, inplace=True)
-        fulldf = fulldf.fillna(value=0)
         return fulldf        

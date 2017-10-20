@@ -6,8 +6,11 @@ serialized_Features_folder = 'serialized_features'
 
 model_synonyms = {
     "MuTectRnaseq" : "MuTectsnvs",
+    "MuTectRnaseq_filtered" : "MuTectsnvs_filtered",
     "StrelkaIndelsRnaseq" : "StrelkaIndels",
-    "StrelkasnvsRnaseq" : "Strelkasnvs"
+    "StrelkaIndelsRnaseq_filtered" : "StrelkaIndels_filtered",
+    "StrelkasnvsRnaseq" : "Strelkasnvs",
+    "StrelkasnvsRnaseq_filtered" : "Strelkasnvs_filtered"
 }
 
 class VCFFeaturesSelector(object):
@@ -60,7 +63,6 @@ class VCFFeaturesSelector(object):
         dataframe = data.get_genes_scoring()
         self.__get_Column_Counts(features, dataframe, 'genesScoring', data.get_dataset_origin())
         filteredDataframe = dataframe.loc[:, features]
-        filteredDataframe = filteredDataframe.fillna(value=0)
         return filteredDataframe
     
     def __generateFilteredGenesFunctionAssociatedDF(self, data):
@@ -68,7 +70,6 @@ class VCFFeaturesSelector(object):
         dataframe = data.get_genes_function_associated()
         self.__get_Column_Counts(features, dataframe, 'genesFunctionAssociated', data.get_dataset_origin())
         filteredDataframe = dataframe.loc[:, features]
-        filteredDataframe = filteredDataframe.fillna(value=0)
         return filteredDataframe
     
     def __generateFilteredCytogeneticFeaturesDF(self, data):
@@ -76,6 +77,5 @@ class VCFFeaturesSelector(object):
         dataframe = data.get_cytogenetic_features()
         self.__get_Column_Counts(features, dataframe, 'cytogeneticFeatures', data.get_dataset_origin())
         filteredDataframe = dataframe.loc[:, features]
-        filteredDataframe = filteredDataframe.fillna(value=-1)
         return filteredDataframe
         
