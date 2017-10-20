@@ -21,32 +21,32 @@ import sys
 import pickle
 
 classifier_dict = {
-    DecisionTreeClassifier: {'criterion': ['gini'], 'max_depth': [4], 'splitter': ['random']},
-    LogisticRegression: {'solver': ['newton-cg'], 'C': [1], 'penalty': ["l2"], 'tol': [0.001], 'multi_class': ['multinomial']},
-    SVC: {'kernel': ['linear'], 'C': [0.1,0.5,1,10], 'probability': [True], 'gamma': [0.0001,0.001,0.01,0.1,1]},
-    BaggingClassifier: {'max_samples': [1], 'bootstrap': [True]},
-    RandomForestClassifier: {'max_depth': [5], 'criterion': ['entropy'], 'n_estimators': [10,20,50,100,500]}
+    #DecisionTreeClassifier: {'criterion': ['gini'], 'max_depth': [4], 'splitter': ['random']},
+    #LogisticRegression: {'solver': ['newton-cg'], 'C': [1], 'penalty': ["l2"], 'tol': [0.001], 'multi_class': ['multinomial']},
+    SVC: {'kernel': ['linear'], 'C': [0.5], 'probability': [True], 'gamma': [0.0001]},
+    #BaggingClassifier: {'max_samples': [1], 'bootstrap': [True]},
+    RandomForestClassifier: {'max_depth': [5], 'criterion': ['entropy'], 'n_estimators': [20,500]}
 }
 
 feature_selection_base_steps = [
-    ('normalize', Normalizer()),
-    ('scaler', MaxAbsScaler()),
-    ('variance', VarianceThreshold()),
+    #('normalize', Normalizer()),
+    #('scaler', MaxAbsScaler()),
+    #('variance', VarianceThreshold()),
     ('percentile', SelectPercentile(percentile=10))
 ]
 
 pca_step = ('pca', PCA(n_components=300))
 
 base_param_grid = {
-'percentile__percentile':[1,3,5,7,10,20,30],
-'variance__threshold':[0.0]
+'percentile__percentile':[1]
+#'variance__threshold':[0.0]
 }
 
 def cross_val_function(X, y, clf, cv=StratifiedKFold(n_splits=10),
                        metrics=["accuracy", "recall", "f1", "neg_log_loss", "precision", "roc_auc"], **kwargs):
     print("Cross validating " + type(clf).__name__)
-    pipeline_factory = lambda clf: Pipeline(steps=[("classify", clf)])
-    return cross_validate(pipeline_factory(clf), X, y, scoring=metrics, cv=cv, **kwargs)
+    #pipeline_factory = lambda clf: Pipeline(steps=[("classify", clf)])
+    return cross_validate(clf, X, y, scoring=metrics, cv=cv, **kwargs)
 
 
 report = lambda cvr: ' \n '.join(
@@ -116,6 +116,20 @@ def cross_validate_models(X, y, model_dict, param_dict):
     return {name: cross_val_function(X, y, clf) for name, clf in model_dict.items()}
 
 
+def apply_fx_by_study(df, transform_fx, keep_study_col=False, study_col_id = 'Study'):
+    dd = df.copy()
+    # dd[study_col_id] = [ind[:1] for ind in dd.index.tolist()]
+    # dd[study_col_id] = dd[study_col_id].apply(ord).astype(int)
+    dd_by_study = dd.groupby(study_col_id)
+    transformed = dd_by_study.apply(lambda x: np.append(transform_fx(x.drop(study_col_id, axis=1)),x[study_col_id].values.reshape(x.shape[0],1), axis=1))
+    #print(transformed.index.unique())
+    for idx in [i for i in transformed.index.unique()]:
+        dd.loc[dd[study_col_id] == idx, :] = transformed[idx]
+
+    if not keep_study_col:
+        del dd[study_col_id]
+    return dd
+
 def df_reduce(X, y, transformer, fit=True):
     if fit:
         transformer.fit(X, y)
@@ -149,7 +163,7 @@ def get_mm_challenge_data(clin_data_path = "/home/skapur/synapse/syn7222203/Clin
     mmcd = MMChallengeData(clin_data_path)
 
     mmcd.generateDataDict(
-        clinicalVariables=["D_Age", "D_ISS"] + ["CYTO_predicted_feature_" + '{0:02d}'.format(i) for i in range(1, 19)],
+        clinicalVariables=["D_Age", "D_ISS",] + ["CYTO_predicted_feature_" + '{0:02d}'.format(i) for i in range(1, 19)],
         outputVariable="HR_FLAG", directoryFolder=directory_folder,
         columnNames=None, NARemove=[True, True], colParseFunDict=None)
 
