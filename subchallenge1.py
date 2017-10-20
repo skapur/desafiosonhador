@@ -27,6 +27,9 @@ def prediction_report(df):
 
 def generateSubModelPredictions(preprocessor, predictor, datasets):
     predictedDFs = []
+    print("="*40)
+    print("Start using individual datasets to predict...")
+    print("="*40)
     for modelType in datasets.keys():
         selector = VCFFeaturesSelector(datasets[modelType])
         dataset = selector.generateFilteredData()
@@ -35,11 +38,18 @@ def generateSubModelPredictions(preprocessor, predictor, datasets):
         predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), modelType, predictions, scores)
         predictedDF.set_index("patient", drop=False, append=False, inplace=True)
         predictedDFs.append(predictedDF)
+    
+    print("Finished individual datasets prediction...")
+    print("="*40)
+    print("Start using global dataset to predict...")
+    print("="*40)
     data = preprocessor.joinDatasetsToSingleDataset(datasets)
     predictions, scores = predictor.generate_predictions_scores(X, data.get_dataset_origin())
     predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), data.get_dataset_origin(), predictions, scores)
     predictedDF.set_index("patient", drop=False, append=False, inplace=True)
     predictedDFs.append(predictedDF)
+    print("Finished global dataset prediction...")
+    print("="*40)
     return predictedDFs
     
 def selectBestScoresFromDifferentModels(predictedDFs):

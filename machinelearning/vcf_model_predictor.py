@@ -101,6 +101,7 @@ class VCFModelPredictor(object):
         reducedDataset = dataset[dataset.columns[z]]
         print("Columns selected on reduced dataset: " + str(reducedDataset.columns))
         print("Finished reducing dataframe for prediction...")
+        print("Dataset rows: " + str(len(dataset.index)))
         print("Starting to predict labels...")
         predictions = clf.predict(x)
         scores = clf.predict_proba(x)[:,1]
@@ -132,6 +133,7 @@ class VCFModelPredictor(object):
         indexingdf = clinicalDataframe.dropna(
             subset=self.__predictionModelToColumns[modelType], 
             how='all')
+        print("Exprected " + str(len(indexingdf)) + " rows predicted!")
 
         predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=indexingdf.index)
         predicted["highriskflag"] = predicted["highriskflag"].astype(str).apply(lambda x: x.upper())
