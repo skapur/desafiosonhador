@@ -104,7 +104,12 @@ class VCFModelPredictor(object):
         print("Dataset rows: " + str(len(dataset.index)))
         print("Starting to predict labels...")
         predictions = clf.predict(x)
-        scores = clf.predict_proba(x)[:,1]
+        predictionscores = clf.predict_proba(x)
+        scores =[]
+        for i in range(0,len(predictions)):
+            value = list(clf.classes_).index(predictions[i])
+            scores.append(predictionscores[i, value])
+        
         print("Finished to predict labels using model "+str(modelType)+"...")
         print("="*40)
         return predictions, scores

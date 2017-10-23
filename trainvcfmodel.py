@@ -218,10 +218,10 @@ def executeCodeManually():
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     print(allX.columns[z])
 
-    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesFunctionAssociated")
+    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "cytogeneticFeatures")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('nbayes', X, y, folds=StratifiedKFold(n_splits=10, shuffle=True))
-    clf = trainer.trainModel('nbayes', X, y)
+    trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('logisticRegression', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
     
 def executeJoinModelCodeManually():
@@ -247,13 +247,13 @@ def executeJoinModelCodeManually():
     inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=65)
+    fts = SelectPercentile(percentile=69)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     print(allX.columns[z])
     
-    trainer.doCrossValidation('nbayes', X, y, folds=StratifiedKFold(n_splits=10, shuffle=True))
-    clf = trainer.trainModel('nbayes', X, y)
+    trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=True))
+    clf = trainer.trainModel('logisticRegression', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
 
 def compareUnfilteredVSFiltered():

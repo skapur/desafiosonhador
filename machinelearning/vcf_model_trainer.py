@@ -18,13 +18,13 @@ class VCFModelTrainer(object):
             "knn" : KNeighborsClassifier(7),
             "nbayes" : GaussianNB(),
             "decisionTree" : DecisionTreeClassifier(max_depth = 4, criterion = "gini", splitter = "random"),
-            "logisticRegression" : LogisticRegression(solver = 'newton-cg', C = 1, penalty = "l2", tol = 0.001, multi_class = 'multinomial'),
+            "logisticRegression" : LogisticRegression(C = 0.001),
             "svm" : SVC(kernel = "linear", C = 1, probability = True),
-            'nnet' : MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (250, 125, 75, 25), alpha = 0.001),
+            'nnet' : MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (200), alpha = 0.001),
             'rand_forest' : RandomForestClassifier(max_depth = 5, criterion = "entropy", n_estimators = 100),
             'bagging': BaggingClassifier(max_samples = 1, bootstrap = True)
             }
-    
+    #solver = 'newton-cg', C = 0.1, penalty = "l2", tol = 0.001, multi_class = 'multinomial'
     def df_reduce(self, X, y, inputer = None, variance = None, scaler = None, fts = None, filename = None):
         z = None
         if inputer is not None:
