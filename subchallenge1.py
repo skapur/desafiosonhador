@@ -58,6 +58,15 @@ def selectBestScoresFromDifferentModels(predictedDFs):
     outputDF = outputDF.sort_values('predictionscore', ascending=False).groupby('patient', as_index=False).first()
     return outputDF
 
+def transformToRankingScore(x):
+    if x['highriskflag'] == 'TRUE':
+        return x['predictionscore']
+    elif x['highriskflag'] == 'FALSE':
+        return 1.0 - x['predictionscore']
+    else:
+        raise("FLAG NOT FOUND: " + x['highriskflag'])
+    
+
 def main(argv):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(dir_path)
@@ -90,8 +99,16 @@ def main(argv):
         predictedDFs.append(predictedDF)
     
     outputDF = selectBestScoresFromDifferentModels(predictedDFs)
-    outputDF.to_csv(outputfile, index=False, sep='\t')
+    print("="*40)
+    print("Model fitment scoring: ")
     prediction_report(outputDF)
+    print("="*40)
+    print("Model ranking scoring: ")
+    outputDF['predictionscore'] = outputDF.apply(transformToRankingScore, axis=1)
+    prediction_report(outputDF)
+    print("="*40)
+    outputDF.to_csv(outputfile, index=False, sep='\t')
+    
     print("Sub Challenge 1 prediction finished...")
 
 
