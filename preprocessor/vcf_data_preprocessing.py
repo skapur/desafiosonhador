@@ -28,9 +28,10 @@ CYTOGENETICS_PROPS = ["CYTO_predicted_feature_01","CYTO_predicted_feature_02","C
 class VCFDataPreprocessor(object):
     
     def __init__(self, submissionfile):
-        self.__clinicalData = pd.read_csv(submissionfile)
-        self.__clinicalData["Patient Index"] = self.__clinicalData.index
-        self.__clinicalData.index = self.__clinicalData["Patient"]
+        if submissionfile is not None:
+            self.__clinicalData = pd.read_csv(submissionfile)
+            self.__clinicalData["Patient Index"] = self.__clinicalData.index
+            self.__clinicalData.index = self.__clinicalData["Patient"]
         self.__executor = multiprocessing.Pool(processes=multiprocessing.cpu_count()-1)
     
     def getClinicalData(self):
@@ -58,16 +59,28 @@ class VCFDataPreprocessor(object):
                 paths = [ path.join(directoryFolder, f) for f in filenames]
                 vcfgenescoredict = {}
                 vcfgenesfunctiondict = {}
+                vcfgenestloddict = {}
                 for k, v in zip(filenames, self.__executor.map(reader.readVCFFileFindCompression, paths)):
                     vcfgenescoredict[k] = v[0]
                     vcfgenesfunctiondict[k] = v[1]
+                    vcfgenestloddict[k] = v[2]
                 
                 vcfGenesScoreDF = self.__tranfromVCFDictToVCFDataframe(vcfgenescoredict, datasetDataframe, GENOMIC_PROPS[dataset])
-                vcfGenesScoreDF = vcfGenesScoreDF.fillna(value=0)
+                vcfGenesScoreDF[vcfGenesScoreDF < 500] = np.nan
+                vcfGenesScoreDF = vcfGenesScoreDF.dropna(axis=1, how='all').fillna(value=0)
+                vcfGenesScoreDF[vcfGenesScoreDF >= 500] = 1
+                #vcfGenesScoreDF = vcfGenesScoreDF.fillna(value=0)
                 data.set_genes_scoring(vcfGenesScoreDF)
+                
                 vcfGenesFunctDF = self.__tranfromVCFDictToVCFDataframe(vcfgenesfunctiondict, datasetDataframe, GENOMIC_PROPS[dataset])
                 vcfGenesFunctDF = vcfGenesFunctDF.fillna(value=0)
                 data.set_genes_function_associated(vcfGenesFunctDF)
+                
+                vcfGenesTLODDF = self.__tranfromVCFDictToVCFDataframe(vcfgenestloddict, datasetDataframe, GENOMIC_PROPS[dataset])
+                vcfGenesTLODDF = vcfGenesTLODDF.fillna(value=0)
+                if not vcfGenesTLODDF.empty:
+                    data.set_genes_tlod(vcfGenesTLODDF)
+                
                 data.set_cytogenetic_features(datasetDataframe[CYTOGENETICS_PROPS])
                 
                 if not vcfGenesScoreDF.empty:
@@ -84,8 +97,9 @@ class VCFDataPreprocessor(object):
         
         return datasets
 
-    def joinDatasetsToSingleDataset(self, datasets):
-        datasets = self.filterFeatureGroupsInDatasets(datasets)
+    def joinDatasetsToSingleDataset(self, datasets, useFiltering=True):
+        if useFiltering:
+            datasets = self.filterFeatureGroupsInDatasets(datasets)
         
         patients = None
         ages = None
@@ -142,11 +156,17 @@ class VCFDataPreprocessor(object):
                 data.set_ISSs(iSSs)
             if genes_scoring is not None:
                 genes_scoring = genes_scoring.groupby(genes_scoring.columns, axis=1).sum()
+                genes_scoring[genes_scoring > 1] = 1
+                genes_scoring[genes_scoring == 0] = np.nan
+                genes_scoring = genes_scoring.dropna(axis=1, how='all')
+                #genes_scoring = genes_scoring.groupby(genes_scoring.columns, axis=1).sum() 
                 genes_scoring = genes_scoring.fillna(value=0)
                 data.set_genes_scoring(genes_scoring)
             if genes_function_associated is not None:
                 genes_function_associated = genes_function_associated.groupby(genes_function_associated.columns, axis=1).sum()
                 genes_function_associated[genes_function_associated > 1] = 1
+                genes_function_associated[genes_function_associated == 0] = np.nan
+                genes_function_associated = genes_function_associated.dropna(axis=1, how='all')
                 genes_function_associated = genes_function_associated.fillna(value=0)
                 data.set_genes_function_associated(genes_function_associated)
             if cytogenetic_features is not None:
@@ -165,10 +185,14 @@ class VCFDataPreprocessor(object):
         
         if containsAge:
             ageDF = datasetDataframe.loc[datasetDataframe.index, "D_Age"].copy()
+            ageRiskDF = ageDF.copy()
             if groupAges:
                 for row in ageDF.index:
                     ageDF.at[row] = self.__ageToGroup(ageDF[row])
             patientdata.set_ages(ageDF)
+            ageRiskDF[ageRiskDF >= 65] = 1
+            ageRiskDF[ageRiskDF < 65] = 0
+            patientdata.set_ageRisk(ageRiskDF)
             
         if containsISS:
             patientdata.set_ISSs(datasetDataframe.loc[datasetDataframe.index, "D_ISS"].copy())

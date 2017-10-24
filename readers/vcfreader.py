@@ -23,6 +23,7 @@ class VCFReader(object):
     def readVCFFile(self, filename, compressed=True):
         genetoscore = {}
         gene_function = {}
+        genes_tlod = {}
         vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
         for record in vcfrecords:
             if 'ANN' in record.INFO.keys():
@@ -42,11 +43,16 @@ class VCFReader(object):
                             genetoscore[gene_instance] = genetoscore[gene_instance] + score_instance
                         else:
                             genetoscore[gene_instance] = score_instance
+                    if 'TLOD' in record.INFO.keys() and 'NLOD' in record.INFO.keys():
+                        tlod = record.INFO['TLOD']
+                        nlod = record.INFO['NLOD']
+                        if tlod > nlod:
+                            genes_tlod["TLOD_"+gene_instance] = 1
                     
             #else:
                 #print(record)
                 #print('File: '+filename+" don't have ANN entry")
-        return genetoscore, gene_function
+        return genetoscore, gene_function, genes_tlod
     
     def getAllFunctions(self, filenames):
         functionAnnotations = set()
@@ -92,6 +98,21 @@ class VCFReader(object):
                         functionAnnotations.add(firstann[3]+"_"+firstann[1])
         return functionAnnotations
     
+    def getGenesWithUpperTLOD(self, filename, compressed=True):
+        genes = set()
+        vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
+        for record in vcfrecords:
+            if 'ANN' in record.INFO.keys():
+                ann = record.INFO['ANN']
+                for firstann in ann:
+                    firstann = firstann.split('|')
+                    gene_instance = firstann[3]
+                    if 'TLOD' in record.INFO.keys() and 'NLOD' in record.INFO.keys():
+                        tlod = record.INFO['TLOD']
+                        nlod = record.INFO['NLOD']
+                        if tlod > nlod:
+                            genes.add("TLOD_"+gene_instance)
+        return genes
     def readFiles(self, files):
         for filepath in files:
             self.__vcfinstances[filepath] = self.readVCFFile(filename=filepath, compressed=True)

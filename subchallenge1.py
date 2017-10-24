@@ -88,16 +88,18 @@ def main(argv):
     
     print("Starting reading VCF Files...")
     preprocessor = VCFDataPreprocessor(inputfile)
-    datasetsUnfiltered = preprocessor.getPatientDataByDataset()
+    #datasetsUnfiltered = preprocessor.getPatientDataByDataset()
     datasetsFiltered = preprocessor.getPatientDataByDataset(useFiltered=True)
     print("Finished reading VCF Files...")
     
     predictor = VCFModelPredictor()
+    predictedDFs = generateSubModelPredictions(preprocessor, predictor, datasetsFiltered)
+    '''
     predictedDFs = generateSubModelPredictions(preprocessor, predictor, datasetsUnfiltered)
     filteredpredictedDFs = generateSubModelPredictions(preprocessor, predictor, datasetsFiltered)
     for predictedDF in filteredpredictedDFs:
         predictedDFs.append(predictedDF)
-    
+    '''
     outputDF = selectBestScoresFromDifferentModels(predictedDFs)
     print("="*40)
     print("Model fitment scoring: ")

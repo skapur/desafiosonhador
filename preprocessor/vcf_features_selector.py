@@ -28,9 +28,19 @@ class VCFFeaturesSelector(object):
         filteredData.set_ages(self.__data.get_ages())
         filteredData.set_ISSs(self.__data.get_ISSs())
         filteredData.set_flags(self.__data.get_flags())
-        filteredData.set_genes_scoring(self.__generateFilteredGenesScoringDF(self.__data))
-        filteredData.set_genes_function_associated(self.__generateFilteredGenesFunctionAssociatedDF(self.__data))
-        filteredData.set_cytogenetic_features(self.__generateFilteredCytogeneticFeaturesDF(self.__data))
+        scoring = self.__generateFilteredGenesScoringDF(self.__data)
+        if scoring is not None:
+            filteredData.set_genes_scoring(scoring)
+        
+        functions = self.__generateFilteredGenesFunctionAssociatedDF(self.__data)
+        if functions is not None:    
+            filteredData.set_genes_function_associated(functions)
+        tloads = self.__generateFilteredGenesTLODFeaturesDF(self.__data)
+        if tloads is not None:
+            filteredData.set_genes_tlod(tloads)
+        cyto = self.__generateFilteredCytogeneticFeaturesDF(self.__data)
+        if cyto is not None:
+            filteredData.set_cytogenetic_features(cyto)
         return filteredData
     
     def __loadSerializedFeatures(self, featureGroupName):
@@ -59,23 +69,38 @@ class VCFFeaturesSelector(object):
         print("="*40)
         
     def __generateFilteredGenesScoringDF(self, data):
-        features = self.__loadSerializedFeatures('genesScoring')
         dataframe = data.get_genes_scoring()
-        self.__get_Column_Counts(features, dataframe, 'genesScoring', data.get_dataset_origin())
-        filteredDataframe = dataframe.loc[:, features]
-        return filteredDataframe
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesScoring')
+            self.__get_Column_Counts(features, dataframe, 'genesScoring', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
     
     def __generateFilteredGenesFunctionAssociatedDF(self, data):
-        features = self.__loadSerializedFeatures('genesFunctionAssociated')
         dataframe = data.get_genes_function_associated()
-        self.__get_Column_Counts(features, dataframe, 'genesFunctionAssociated', data.get_dataset_origin())
-        filteredDataframe = dataframe.loc[:, features]
-        return filteredDataframe
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesFunctionAssociated')
+            self.__get_Column_Counts(features, dataframe, 'genesFunctionAssociated', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
     
     def __generateFilteredCytogeneticFeaturesDF(self, data):
-        features = self.__loadSerializedFeatures('cytogeneticFeatures')
         dataframe = data.get_cytogenetic_features()
-        self.__get_Column_Counts(features, dataframe, 'cytogeneticFeatures', data.get_dataset_origin())
-        filteredDataframe = dataframe.loc[:, features]
-        return filteredDataframe
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('cytogeneticFeatures')
+            self.__get_Column_Counts(features, dataframe, 'cytogeneticFeatures', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
+    
+    def __generateFilteredGenesTLODFeaturesDF(self, data):
+        dataframe = data.get_genes_tlod()
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesTlod')
+            self.__get_Column_Counts(features, dataframe, 'genesTlod', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
         

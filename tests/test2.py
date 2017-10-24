@@ -81,8 +81,15 @@ def getGenesAndFunctions():
     
     #print(genes)
     #print(functions)
-    
+
+def tLODTest():
+    reader = VCFReader()
+    genes = reader.getGenesWithUpperTLOD("/home/tiagoalves/rrodrigues/resources/synapse/MMRF_1021_1_BM_CD138pos_T2_KAS5U_L02366.MarkDuplicates.mdup...ANNOTATED.vcf.gz")
+    print(genes)
 
 if __name__ == '__main__':
-    getAllFunctions()
-    getGenesAndFunctions()
+    dir_path = os.path.dirname(os.path.join(os.path.dirname(__file__), '../..'))
+    os.chdir(dir_path)
+    #getAllFunctions()
+    #getGenesAndFunctions()
+    tLODTest()

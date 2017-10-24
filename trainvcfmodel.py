@@ -1,6 +1,7 @@
 from builtins import range
 import pickle
 import sys
+import numpy as np
 
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection.univariate_selection import SelectPercentile
@@ -19,79 +20,6 @@ from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
 
 sys.path.insert(0,'/home/dreamchallenge/python_scripts/desafiosonhador')
-
-def joinDatasetsToSingleDataset(datasets):
-    
-    patients = None
-    ages = None
-    iSSs = None
-    genes_scoring = None
-    genes_function_associated = None
-    cytogenetic_features = None
-    flags = None
-    containsFiltered = False
-    
-    for dataset in datasets:
-        if "filtered" in dataset.get_dataset_origin():
-            containsFiltered = True
-        if patients is None: 
-            patients = dataset.get_patients()
-        else:
-            patients = pd.concat([patients, dataset.get_patients()])
-        if ages is None:
-            ages = dataset.get_ages()
-        else:
-            ages = pd.concat([ages, dataset.get_ages()])
-        if iSSs is None:
-            iSSs = dataset.get_ISSs()
-        else:
-            iSSs = pd.concat([iSSs, dataset.get_ISSs()])
-        if genes_scoring is None:
-            genes_scoring = dataset.get_genes_scoring()
-        else:
-            genes_scoring = pd.concat([genes_scoring, dataset.get_genes_scoring()], axis=1)
-        if genes_function_associated is None:
-            genes_function_associated = dataset.get_genes_function_associated()
-        else:
-            genes_function_associated = pd.concat([genes_function_associated, dataset.get_genes_function_associated()], axis=1)
-        if cytogenetic_features is None:
-            cytogenetic_features = dataset.get_cytogenetic_features()
-        else:
-            cytogenetic_features = pd.concat([cytogenetic_features, dataset.get_cytogenetic_features()])
-        if flags is None:
-            flags = dataset.get_flags()
-        else:
-            flags = pd.concat([flags, dataset.get_flags()])
-    
-    data = None
-    if patients is not None:
-        patients = patients.groupby(patients.index).first()
-        datasetname = 'ALL'
-        if containsFiltered:
-            datasetname = datasetname + "_filtered"
-        data = PatientData(datasetname, patients)
-        if ages is not None:        
-            ages = ages.groupby(ages.index).first()
-            data.set_ages(ages)
-        if iSSs is not None:
-            iSSs = iSSs.groupby(iSSs.index).first()
-            data.set_ISSs(iSSs)
-        if genes_scoring is not None:
-            genes_scoring = genes_scoring.groupby(genes_scoring.columns, axis=1).sum()
-            genes_scoring = genes_scoring.fillna(value=0)
-            data.set_genes_scoring(genes_scoring)
-        if genes_function_associated is not None:
-            genes_function_associated = genes_function_associated.groupby(genes_function_associated.columns, axis=1).sum()
-            genes_function_associated[genes_function_associated > 1] = 1
-            genes_function_associated = genes_function_associated.fillna(value=0)
-            data.set_genes_function_associated(genes_function_associated)
-        if cytogenetic_features is not None:
-            cytogenetic_features = cytogenetic_features.groupby(cytogenetic_features.index).first()
-            data.set_cytogenetic_features(cytogenetic_features)
-        if flags is not None:
-            flags = flags.groupby(flags.index).first()
-            data.set_flags(flags)
-    return data
 
 def serializeDataset(modelsFolder, dataset):
     datasetfilename = str(dataset.get_dataset_origin()) + "_dataset_CH1.pkl"
@@ -156,12 +84,12 @@ def generate_datasets_forTraining(clinicalfile, dataFolder='/test-data/', datase
     datasets = preprocessor.getPatientDataByDataset(dataFolder, useFiltered=False, forTraining=True)
     for dataset in datasets.values():
         serializeDataset(datasetsFolder, dataset)
-    dataset = joinDatasetsToSingleDataset(datasets.values())
+    dataset = preprocessor.joinDatasetsToSingleDataset(datasets, False)
     serializeDataset(datasetsFolder, dataset)
     datasets = preprocessor.getPatientDataByDataset(dataFolder, useFiltered=True, forTraining=True)
     for dataset in datasets.values():
         serializeDataset(datasetsFolder, dataset)
-    dataset = joinDatasetsToSingleDataset(datasets.values())
+    dataset = preprocessor.joinDatasetsToSingleDataset(datasets, False)
     serializeDataset(datasetsFolder, dataset)
 
 def train_serialize_models(clinicalfile, dataFolder='/test-data/', modelsFolder='/', fts_percentile=10, method="nnet", doCV=True, saveFiles=True, joinAllDatasets=False, savedataset=False):
@@ -183,27 +111,28 @@ def read_serialized_dataset(datasetpath):
 def executeCodeOnDarwin():
     clinicalfile = '/home/dreamchallenge/synapse/syn7222203/Clinical Data/globalClinTraining.csv'
     dataFolder = '/home/dreamchallenge/link-data/'
-    datasetsFolder = '/home/dreamchallenge/vcf-datasets'
+    datasetsFolder = '/home/dreamchallenge/vcf-datasets_v2'
     #train_serialize_models(clinicalfile, dataFolder, modelsFolder, doCV=False, saveFiles=False, fts_percentile=2, joinAllDatasets=False, savedataset=True)
     generate_datasets_forTraining(clinicalfile, dataFolder, datasetsFolder)
     
 def executeCodeManually():
 
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets/MuTectsnvs_filtered_dataset_CH1.pkl'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets/StrelkaIndels_dataset_CH1.pkl'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets/Strelkasnvs_filtered_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v2/MuTectsnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v2/StrelkaIndels_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v2/Strelkasnvs_filtered_dataset_CH1.pkl'
     
     dataset = read_serialized_dataset(datasetpath)
     
     print(dataset.get_flags().value_counts())
-    filterator = VCFFeaturesSelector(dataset)
-    dataset = filterator.generateFilteredData()
-    allX = dataset.getFullDataframe(False,False)
+    #filterator = VCFFeaturesSelector(dataset)
+    #dataset = filterator.generateFilteredData()
+    #allX = dataset.getFullDataframe(False,False)
     
-    #allX = dataset.get_genes_scoring()
+    #allX = dataset.get_genes_scoring() #5.9
     #allX = dataset.get_genes_function_associated()
     #allX = dataset.get_cytogenetic_features()
+    allX = dataset.get_genes_tlod()
     #allX = dataset.getFullDataframe(False,False)
     
     serializeFeatures(modelsFolder, dataset, allX)
@@ -213,32 +142,29 @@ def executeCodeManually():
     #variance = VarianceThreshold(threshold=(.9 * (1 - .9)))
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=99)
+    fts = SelectPercentile(percentile=38)
     y = dataset.get_flags()
-    X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
+    X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, False))
     print(allX.columns[z])
-
-    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "cytogeneticFeatures")
+    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesTlod")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
     trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('logisticRegression', X, y)
-    serializeClassifier(modelsFolder, dataset, clf)
+    #clf = trainer.trainModel('logisticRegression', X, y)
+    #serializeClassifier(modelsFolder, dataset, clf)
     
 def executeJoinModelCodeManually():
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets/MuTectsnvs_filtered_dataset_CH1.pkl',
+    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets_v2/MuTectsnvs_filtered_dataset_CH1.pkl',
              #'/home/tiagoalves/rrodrigues/vcf-datasets/StrelkaIndels_dataset_CH1.pkl',
-             '/home/tiagoalves/rrodrigues/vcf-datasets/Strelkasnvs_filtered_dataset_CH1.pkl']
+             '/home/tiagoalves/rrodrigues/vcf-datasets_v2/Strelkasnvs_filtered_dataset_CH1.pkl']
     
-    datasets = []
-    
+    datasets = {}
+    preprocessor = VCFDataPreprocessor(None)
     for pat in paths:
         dataset = read_serialized_dataset(pat)
-        filterator = VCFFeaturesSelector(dataset)
-        dataset = filterator.generateFilteredData()
-        datasets.append(dataset)
+        datasets[dataset.get_dataset_origin()] = dataset
     
-    dataset = joinDatasetsToSingleDataset(datasets)
+    dataset = preprocessor.joinDatasetsToSingleDataset(datasets)
     allX = dataset.getFullDataframe(False,False)
     
     serializeFeatures(modelsFolder, dataset, allX)
@@ -247,13 +173,13 @@ def executeJoinModelCodeManually():
     inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=69)
+    fts = SelectPercentile(percentile=47)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     print(allX.columns[z])
     
-    trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=True))
-    clf = trainer.trainModel('logisticRegression', X, y)
+    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('nnet', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
 
 def compareUnfilteredVSFiltered():
