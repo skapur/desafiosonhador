@@ -5,7 +5,7 @@ import pickle
 import sys
 
 from sklearn.feature_selection import SelectPercentile
-from sklearn.preprocessing import MaxAbsScaler, QuantileTransformer, MinMaxScaler, StandardScaler, Normalizer
+from sklearn.preprocessing import MaxAbsScaler, QuantileTransformer, MinMaxScaler, StandardScaler, Normalizer, Imputer
 from sklearn.pipeline import Pipeline
 
 #Models
@@ -17,7 +17,6 @@ from sklearn.svm import SVC,LinearSVC
 from sklearn.neural_network import MLPClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier, AdaBoostClassifier, VotingClassifier
-
 from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce, cross_val_function, rnaseq_prepare_data
 
@@ -28,16 +27,17 @@ def report (cv_res):
     print("="*40)
 
 #Load data
-data_folder = '.\Expression Data\All Data'
-clin_file = '.\Clinical Data\sc2_Training_ClinAnnotations.csv'
+data_folder = '/home/skapur/synapse/syn7222203/CH2'
+clin_file = '/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv'
 mmcd = MMChallengeData(clin_file)
 mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder=data_folder, columnNames=None, NARemove=[True, False])
 
 #Transformers
 # scl = MaxAbsScaler()
-scl = Pipeline(steps=[('normalizer', Normalizer()),('scale', MaxAbsScaler())])
-fts = SelectPercentile(percentile = 5)
 
+from sklearn.base import clone as clone_sk
+
+clin_norm = Pipeline(steps=[('impute', Imputer(strategy='median')),('normalizer', MaxAbsScaler())])
 # =========================
 #          RNA-SEQ
 # =========================
@@ -45,17 +45,21 @@ fts = SelectPercentile(percentile = 5)
 RNA_gene, RNA_gene_cd, RNA_gene_output = mmcd.dataDict[("RNASeq", "gene")]
 
 X_rseq, y_rseq = rnaseq_prepare_data(RNA_gene, None, RNA_gene_output)
-X_rseq_t, y_rseq_t, fts_vector = df_reduce(X_rseq, y_rseq, scl, fts, True, filename = 'transformers_rna_seq.sav')
+X_clin_rseq = clin_norm.fit_transform(RNA_gene_cd.loc[X_rseq.index])
+scl_rseq = Pipeline(steps=[('impute', Imputer(strategy='median')),('normalizer', Normalizer())])
+fts_rseq = SelectPercentile(percentile = 100)
+X_rseq_t, y_rseq_t, fts_vector = df_reduce(X_rseq, y_rseq, scl_rseq, fts_rseq, True, filename = 'transformers_rna_seq.sav')
 
 # =============================
 #          MICROARRAYS
 # =============================
 
 MA_gene, MA_gene_cd, MA_gene_output = mmcd.dataDict[("MA", "gene")]
-
+scl_ma = Pipeline(steps=[('impute', Imputer(strategy='median')),('normalizer', Normalizer())])
+fts_ma = SelectPercentile(percentile = 10)
 X_marrays, y_marrays = rnaseq_prepare_data(MA_gene, None, MA_gene_output, axis = 1)
-X_marrays_t, y_marrays_t, fts_vector = df_reduce(X_marrays, y_marrays, scl, fts, True, filename = 'transformers_microarrays.sav')
-
+X_clin_ma = clin_norm.fit_transform(MA_gene_cd.loc[X_marrays.index])
+X_marrays_t, y_marrays_t, fts_vector = df_reduce(X_marrays, y_marrays, scl_ma, fts_ma, True, filename = 'transformers_microarrays.sav')
 
 # =============================
 #          ENSEMBLE
@@ -66,12 +70,69 @@ clf2 = RandomForestClassifier(random_state = 1, max_depth = 5, criterion = "entr
 clf3 = GaussianNB()
 clf4 = SVC(kernel = "linear", C = 0.5, probability = True, gamma = 0.0001)
 clf5 = MLPClassifier(solver = 'adam', activation = "relu", hidden_layer_sizes = (50,25), alpha = 0.001)
-eclf1 = VotingClassifier(estimators=[('lr', clf1), ('svm', clf4), ('nnet', clf5)],
-                         voting = 'soft', n_jobs = -1)
+
+clf_list = [('logreg',clf1),('nb',clf3),('svm',clf4),('mlp',clf5)]
+
+# =============================
+# RNA-Seq meta-classifier
+# =============================
+for clf_name, clf in clf_list:
+    clf.fit(X_rseq_t, y_rseq_t)
+
+with open('rna_fitted_classifier_list.sav','wb') as f:
+    pickle.dump(clf_list, f)
+
+scores_rna = np.stack([clf.predict_proba(X_rseq_t)[:,1] for clf_name, clf in clf_list]).T
+
+meta_classifier_rna_seq = LogisticRegression(
+    random_state = 1,
+    solver = 'newton-cg',
+    C = 0.5,
+    penalty = "l2",
+    tol = 0.001,
+    multi_class = 'multinomial'
+)
+
+meta_classifier_rna_seq.fit(scores_rna, y_rseq_t)
+cv_meta_rna = cross_val_function(scores_rna, y_rseq_t, meta_classifier_rna_seq)
+print(report(cv_meta_rna))
+
+with open('rna_fitted_stack_classifier.sav','wb') as f:
+    pickle.dump(meta_classifier_rna_seq, f)
+
+# =============================
+# Microarray meta-classifier
+# =============================
+for clf_name, clf in clf_list:
+    clf.fit(X_marrays_t, y_marrays_t)
+
+with open('ma_fitted_classifier_list.sav', 'wb') as f:
+    pickle.dump(clf_list, f)
+
+scores_ma = np.stack([clf.predict_proba(X_marrays_t)[:, 1] for clf_name, clf in clf_list], axis=1)
+
+meta_classifier_ma = LogisticRegression(
+    random_state=1,
+    solver='newton-cg',
+    C=0.5,
+    penalty="l2",
+    tol=0.001,
+    multi_class='multinomial'
+)
+
+meta_classifier_ma.fit(scores_ma, y_marrays_t)
+cv_meta_ma = cross_val_function(scores_ma, y_marrays_t, meta_classifier_ma)
+print(report(cv_meta_ma))
+
+with open('ma_fitted_stack_classifier.sav', 'wb') as f:
+    pickle.dump(meta_classifier_ma, f)
+
+# eclf1 = VotingClassifier(estimators=[('lr', clf1), ('svm', clf4), ('nnet', clf5)],
+#                          voting = 'soft', n_jobs = -1)
 #eclf1 = eclf1.fit(X_rseq_t, y_rseq_t)
 
 #RNA-Seq
-cv = cross_val_function(X_rseq_t, y_rseq_t, clf = eclf1)
+cv = cross_val_function(X_rseq_t, y_rseq_t, clf = meta_classifier_ma)
 report(cv)
 
 #Fit Models
@@ -80,6 +141,8 @@ clf_rseq.fit(X_rseq_t, y_rseq_t)
 with open("fittedModel_rna_seq.sav", 'wb') as f:
     pickle.dump(clf_rseq, f)
 
+with open("fittedModel_logreg_ensemble_rna_seq.sav", 'rb') as f:
+    m = pickle.load(f)
 #Microarrays
 cv = cross_val_function(X_marrays_t, y_marrays_t, clf = eclf1)
 report(cv)
