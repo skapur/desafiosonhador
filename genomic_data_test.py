@@ -5,7 +5,7 @@ import sys
 
 from sklearn import decomposition
 from sklearn.feature_selection import SelectPercentile
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import cross_validate, StratifiedKFold
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MaxAbsScaler
@@ -28,7 +28,7 @@ from data_preprocessing import MMChallengeData, MMChallengePredictor
 def cross_val_function(X, y, clf):
     print("Cross validating "+type(clf).__name__)
     pipeline_factory = lambda clf: Pipeline(steps=[("classify", clf)])
-    return cross_validate(pipeline_factory(clf), X, y, scoring=["accuracy", "recall", "f1", "neg_log_loss", "precision", "roc_auc"], cv=10, verbose=1)
+    return cross_validate(pipeline_factory(clf), X, y, scoring=["accuracy", "precision", "recall", "f1", "neg_log_loss", "roc_auc"], cv=StratifiedKFold(n_splits=10, shuffle=True), verbose=1)
 
 
 from numpy import where
@@ -37,9 +37,9 @@ report = lambda cvr : ' \n '.join([str(name + " : " + str(np.mean(array)) + " +/
 
 def rnaseq_prepare_data(X_gene, X_trans, y_orig, axis = 0):
     if X_trans is not None:
-        X = pd.concat([X_gene, X_trans], axis=1).dropna(axis = axis)
+        X = pd.concat([X_gene, X_trans], axis=1)
     else:
-        X = X_gene.dropna(axis=axis)
+        X = X_gene
     y = y_orig[X.index]
     valid_samples = y != "CENSORED"
     X, y = X[valid_samples], y[valid_samples] == "TRUE"
@@ -124,7 +124,7 @@ if __name__ == '__main__':
 
     #DIR = "/home/skapur/synapse/syn7222203/"
     DIR = 'D:\Dropbox\workspace_intelij\DREAM_Challenge'
-    mmcd = MMChallengeData(DIR)
+    mmcd = MMChallengeData("/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv")
     mmcd.generateDataDict()
 
     MA_gene, MA_gene_cd, MA_gene_output = mmcd.dataDict[("MA", "gene")]

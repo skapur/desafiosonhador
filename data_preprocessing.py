@@ -49,7 +49,7 @@ class MMChallengeData(object):
         removeRows = NARemove[0]
         if columnNames is None:
             df = df.dropna(axis=0, how='all') if removeRows else df
-            df = df.dropna(axis=1, how='any') if removeCols else df
+            df = df.dropna(axis=1, how='all') if removeCols else df
         else:
             df = df.loc[:, columnNames].fillna(value=0)
 

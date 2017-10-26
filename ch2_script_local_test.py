@@ -1,110 +1,162 @@
+#!/usr/bin/python
+
 import pickle
-from os import chdir
-chdir("/home/skapur/MEOCloud/Projectos/DREAMChallenge_MultipleMyeloma/desafiosonhador")
 import sys, getopt
 from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce
+from sklearn.preprocessing import MaxAbsScaler
+import pandas as pd
+from copy import deepcopy
 
-#DIR = "/home/skapur/synapse/syn7222203/"
-#DIR = 'D:\Dropbox\workspace_intelij\DREAM_Challenge'
-#mmcd = MMChallengeData(DIR)
-print("Starting the script!")
-print("Reading clinical data")
-argv = "/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv"
-mmcd = MMChallengeData(argv)
+def prediction_report(df):
+    # min, max, IQR, median, mean, Trues
+    scores = df["predictionscore"]
+    flags = df["highriskflag"]
+    maxp, minp = scores.max(), scores.min()
+    q1, q3 = scores.quantile([.25, .75])
+    mean, median = scores.mean(), scores.median()
+    num_trues = sum(flags == "TRUE")
+    print("Score range: "+str(minp)+" <> "+str(maxp))
+    print("Q1 = "+str(q1)+" <> "+"Q3 = "+str(q3))
+    print("Mean: "+str(mean))
+    print("Median: "+str(median))
+    print("True predictions: "+str(num_trues))
 
-with open('colnames.sav','rb') as f:
-    colname_dict = pickle.load(f)
+def main(argv):
+    #DIR = "/home/skapur/synapse/syn7222203/"
+    #DIR = 'D:\Dropbox\workspace_intelij\DREAM_Challenge'
+    #mmcd = MMChallengeData(DIR)
+    print("Starting the script!")
+    print("Reading clinical data")
+    argv1 = "/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv"
+    mmcd = MMChallengeData(argv1)
+    mmcd.clinicalData
+    print("Reading files using information from clinical data")
 
-col_parse_dict = {
-    ('RNA','trans'):lambda x: x.split('.')[0]
-}
-print("Reading files using information from clinical data")
-mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG", directoryFolder='/home/skapur/synapse/syn7222203/CH2', columnNames=None, NARemove=[True, False])
+    with open('final_colnames.sav','rb') as f:
+        colname_dict = pickle.load(f)
 
+    col_parse_dict = {
+        ('RNASeq', 'trans'): lambda x: x.split('.')[0]
+    }
 
-X, cd, y = mmcd.dataDict[("MA","gene")]
-Xn = X.dropna(axis = 1)
-y = y == "TRUE"
-y = y.astype(int)
-
-
-coln = Xn.shape[1]
-from minepy import MINE
-mine = MINE(alpha=0.6, c=15, est="mic_approx")
-scores = {}
-for i in range(coln):
-    mine.compute_score(Xn.values[:,i], y)
-    scores[i] = mine.mic()
-
-coldict = {datype: df[0].columns.tolist() for datype,df in mmcd.dataDict.items()}
-with open('colnames.sav','wb') as f:
-    pickle.dump(coldict, f)
-# ======== RNA-SEQ ========
-
-print("Loading RS transformer")
-#Load fitted transformers and model
-with open('transformers_rna_seq.sav', 'rb') as f:
-    trf_rseq = pickle.load(f)
-
-print("Loading RS classifier")
-with open('fittedModel_rna_seq.sav', 'rb') as f:
-    clf_rseq = pickle.load(f)
-
-mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
-
-print("Predicting with RS...")
-# Make predictions
-mod_rseq = MMChallengePredictor(
-        mmcdata = mmcd,
-        predict_fun = lambda x: clf_rseq.predict(x)[0],
-        # confidence_fun = lambda x: 1 - min(clf_rseq.predict_proba(x)[0]),
-        confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
-        data_types = [("RNASeq", "gene"), ("RNASeq", "trans")],
-        single_vector_apply_fun = lambda x: x,
-        multiple_vector_apply_fun = mv_fun_rseq
-)
-res_rseq = mod_rseq.predict_dataset()
+    # mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=None, NARemove=[True,True], colParseFunDict=col_parse_dict)
+    #
+    # for key, df in mmcd.dataDict.items():
+    #     print(key)
+    #     print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
+    #     overlap = set(colname_dict[key]) & set(df[0].columns.tolist())
+    #     print("Overlapped genes:")
+    #     print(overlap)
+    #     print("Dataframe columns: "+str(df[0].shape[1]))
+    #     print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
+    #     print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
+    #     print("*"*80)
 
 
-# ======== MICROARRAYS ========
-print("Loading MA transformer")
-#Load fitted transformers and model
-with open('transformers_microarrays.sav', 'rb') as f:
-    trf_marrays = pickle.load(f)
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"]+["CYTO_predicted_feature_"+str(i) for i in range(1,19)], outputVariable="D_Age", directoryFolder='/home/skapur/synapse/syn7222203/CH2/', columnNames=colname_dict, NARemove=[True,True], colParseFunDict=col_parse_dict)
 
-print("Loading MA classifier")
-with open('fittedModel_microarrays.sav', 'rb') as f:
-    clf_marrays = pickle.load(f)
 
-mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
+    for key, df in mmcd.dataDict.items():
+        print(key)
+        #print("First 100 features - Validation: "+str(df[0].columns.tolist
 
-# Make predictions
-print("Predicting with MA...")
-mod_marryas = MMChallengePredictor(
+        training_features = set(colname_dict[key])
+        validation_features = set(df[0].columns.tolist())
+        overlapped_features = training_features & validation_features
+
+        print(str(len(overlapped_features))+" "+"overlapped features.")
+        print("Dataframe has "+str(len(df[0].columns.tolist())))
+        print("Dataframe columns: "+str(df[0].shape[1]))
+        print("Full NA columns: "+str(df[0].isnull().all().sum() > 0))
+        print("Partial NA columns: " + str(df[0].isnull().any().sum() > 0))
+        print("*"*80)
+
+    # ======== RNA-SEQ ========
+
+    print("Loading RS transformer")
+    #Load fitted transformers and model
+    with open('transformers_rna_seq.sav', 'rb') as f:
+        trf_rseq = pickle.load(f)
+
+    print("Loading RS classifier")
+    with open('fittedModel_rna_seq.sav', 'rb') as f:
+        clf_rseq = pickle.load(f)
+
+    # Redefining scaler for RNA-Seq
+    # rseq_new_scl = MaxAbsScaler()
+    # rseq_data = mmcd.dataDict[("RNASeq", "gene")][0]
+    # rseq_new_scl.fit(rseq_data)
+    # trf_rseq['scaler'] = rseq_new_scl
+
+
+    mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
+
+    print("Predicting with RS...")
+    # Make predictions
+    mod_rseq = MMChallengePredictor(
             mmcdata = mmcd,
-            predict_fun = lambda x: clf_marrays.predict(x)[0],
-            confidence_fun = lambda x: clf_marrays.predict_proba(x)[0][1],
-            data_types = [("MA", "gene")],
-            single_vector_apply_fun = mv_fun,
+            predict_fun = lambda x: clf_rseq.predict(x)[0],
+            confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
+            data_types = [("RNASeq", "gene")],
+            single_vector_apply_fun = mv_fun_rseq,
             multiple_vector_apply_fun = lambda x: x
-)
-res_marrays = mod_marryas.predict_dataset()
+    )
+    res_rseq = mod_rseq.predict_dataset()
 
-#Final dataset
-print("Generating prediction matrix")
-final_res = res_rseq.combine_first(res_marrays)
-final_res.columns = ['study', 'patient', 'predictionscore', 'highriskflag']
-final_res['highriskflag'] = final_res['highriskflag'] == 1
-final_res['highriskflag'] = final_res['highriskflag'].apply(lambda x: str(x).upper())
 
-final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0.5)
-#final_res["highriskflag"] = final_res["highriskflag"].fillna(value=True)
+    # ======== MICROARRAYS ========
+    print("Loading MA transformer")
+    #Load fitted transformers and model
+    with open('transformers_microarrays.sav', 'rb') as f:
+        trf_marrays = pickle.load(f)
 
-print("Writing prediction matrix")
-final_res.to_csv("predictions.tsv", index = False, sep = '\t')
+    print("Loading MA classifier")
+    with open('fittedModel_microarrays.sav', 'rb') as f:
+        clf_marrays = pickle.load(f)
 
-print("Any failed prediction column in the prediction matrix?")
-print(str(final_res.isnull().any()))
-print("All failed prediction column in the prediction matrix?")
-print(str(final_res.isnull().all()))
+    # Redefining scaler for marrays
+    # marrays_new_scl = MaxAbsScaler()
+    # marrays_data = mmcd.dataDict[("MA", "gene")][0]
+    # marrays_new_scl.fit(marrays_data)
+    # trf_marrays['scaler'] = marrays_new_scl
+
+    mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
+
+    # Make predictions
+    print("Predicting with MA...")
+    mod_marryas = MMChallengePredictor(
+                mmcdata = mmcd,
+                predict_fun = lambda x: clf_marrays.predict(x)[0],
+                confidence_fun = lambda x: clf_marrays.predict_proba(x)[0][1],
+                data_types = [("MA", "gene")],
+                single_vector_apply_fun = mv_fun,
+                multiple_vector_apply_fun = lambda x: x
+    )
+    res_marrays = mod_marryas.predict_dataset()
+
+    #Final dataset
+    print("Generating prediction matrix")
+    final_res = res_rseq.combine_first(res_marrays)
+    final_res.columns = ['study', 'patient', 'predictionscore', 'highriskflag']
+    final_res['highriskflag'] = final_res['highriskflag'] == 1
+    final_res['highriskflag'] = final_res['highriskflag'].apply(lambda x: str(x).upper())
+
+    print("Any failed prediction column in the prediction matrix?")
+    print(str(final_res.isnull().sum()))
+    print("All failed prediction column in the prediction matrix?")
+    print(str(final_res.isnull().sum()))
+
+    final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0)
+    final_res["highriskflag"] = final_res["highriskflag"].fillna(value=False)
+
+    print("Writing prediction matrix")
+    final_res.to_csv("predictions.tsv", index = False, sep = '\t')
+
+
+
+    prediction_report(final_res)
+    print("Done!")
+
+if __name__ == "__main__":
+    main("/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv")
