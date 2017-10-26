@@ -18,14 +18,18 @@ class VCFModelTrainer(object):
             "knn" : KNeighborsClassifier(7),
             "nbayes" : GaussianNB(),
             "decisionTree" : DecisionTreeClassifier(max_depth = 4, criterion = "gini", splitter = "random"),
-            "logisticRegression" : LogisticRegression(solver = 'newton-cg', C = 1, penalty = "l2", tol = 0.001, multi_class = 'multinomial'),
-            "svm" : SVC(kernel = "linear", C = 1, probability = True, gamma = 0.0001),
-            'nnet' : MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (250, 125, 75, 25), alpha = 0.001),
+            "logisticRegression" : LogisticRegression(C = 0.001),
+            "svm" : SVC(kernel = "linear", C = 1, probability = True),
+            'nnet' : MLPClassifier(solver = 'lbfgs', activation = "logistic", hidden_layer_sizes = (200), alpha = 0.001),
             'rand_forest' : RandomForestClassifier(max_depth = 5, criterion = "entropy", n_estimators = 100),
             'bagging': BaggingClassifier(max_samples = 1, bootstrap = True)
             }
-    
-    def df_reduce(self, X, y, variance = None, scaler = None, fts = None, filename = None):
+    #solver = 'newton-cg', C = 0.1, penalty = "l2", tol = 0.001, multi_class = 'multinomial'
+    def df_reduce(self, X, y, inputer = None, variance = None, scaler = None, fts = None, filename = None):
+        z = None
+        if inputer is not None:
+            inputer.fit(X,y)
+            X = inputer.transform(X)
         if variance is not None:
             variance.fit(X, y)
             X = variance.transform(X)
@@ -35,11 +39,12 @@ class VCFModelTrainer(object):
         if fts is not None:
             fts.fit(X, y)
             X = fts.transform(X)
+            z = fts.get_support(True)
         if filename is not None: # save the objects to disk
             f = open(filename, 'wb')
-            pickle.dump({'variance':variance, 'scaler': scaler, 'fts': fts}, f)
+            pickle.dump({'inputer': inputer, 'variance':variance, 'scaler': scaler, 'fts': fts}, f)
             f.close()
-        return X, y, fts.get_support(True)
+        return X, y, z
     
     def testAllMethodsCrossValidation(self, X, y, folds=10):
         for method in self.__methods.keys():

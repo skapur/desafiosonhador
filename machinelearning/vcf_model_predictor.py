@@ -11,26 +11,49 @@ class VCFModelPredictor(object):
             "__transformerFilename" : "serialized_models/ALL_Transformer_CH1.pkl",
             "__classifierFilename" : "serialized_models/ALL_Classifier_CH1.pkl" 
             },
+        'ALL_filtered' : {
+            "__columnsDic" : "serialized_models/ALL_filtered_featColumns_CH1.pkl",
+            "__transformerFilename" : "serialized_models/ALL_filtered_Transformer_CH1.pkl",
+            "__classifierFilename" : "serialized_models/ALL_filtered_Classifier_CH1.pkl" 
+            },
         'MuTectsnvs' : {
             "__columnsDic" : "serialized_models/MuTectsnvs_featColumns_CH1.pkl",
             "__transformerFilename" : "serialized_models/MuTectsnvs_Transformer_CH1.pkl",
             "__classifierFilename" : "serialized_models/MuTectsnvs_Classifier_CH1.pkl" 
+            },
+        'MuTectsnvs_filtered' : {
+            "__columnsDic" : "serialized_models/MuTectsnvs_filtered_featColumns_CH1.pkl",
+            "__transformerFilename" : "serialized_models/MuTectsnvs_filtered_Transformer_CH1.pkl",
+            "__classifierFilename" : "serialized_models/MuTectsnvs_filtered_Classifier_CH1.pkl" 
             },
         'StrelkaIndels' : {
             "__columnsDic" : "serialized_models/StrelkaIndels_featColumns_CH1.pkl",
             "__transformerFilename" : "serialized_models/StrelkaIndels_Transformer_CH1.pkl",
             "__classifierFilename" : "serialized_models/StrelkaIndels_Classifier_CH1.pkl" 
             },
+        'StrelkaIndels_filtered' : {
+            "__columnsDic" : "serialized_models/StrelkaIndels_filtered_featColumns_CH1.pkl",
+            "__transformerFilename" : "serialized_models/StrelkaIndels_filtered_Transformer_CH1.pkl",
+            "__classifierFilename" : "serialized_models/StrelkaIndels_filtered_Classifier_CH1.pkl" 
+            },
         'Strelkasnvs' : {
             "__columnsDic" : "serialized_models/Strelkasnvs_featColumns_CH1.pkl",
             "__transformerFilename" : "serialized_models/Strelkasnvs_Transformer_CH1.pkl",
             "__classifierFilename" : "serialized_models/Strelkasnvs_Classifier_CH1.pkl" 
-            }          
+            },
+        'Strelkasnvs_filtered' : {
+            "__columnsDic" : "serialized_models/Strelkasnvs_filtered_featColumns_CH1.pkl",
+            "__transformerFilename" : "serialized_models/Strelkasnvs_filtered_Transformer_CH1.pkl",
+            "__classifierFilename" : "serialized_models/Strelkasnvs_filtered_Classifier_CH1.pkl" 
+            }        
         }
         self.__exploited_models = { 
             'MuTectRnaseq' : 'MuTectsnvs',
+            'MuTectRnaseq_filtered' : 'MuTectsnvs_filtered',
             'StrelkaIndelsRnaseq' :'StrelkaIndels',
-            'StrelkasnvsRnaseq' :  'Strelkasnvs'
+            'StrelkaIndelsRnaseq_filtered' :'StrelkaIndels_filtered',
+            'StrelkasnvsRnaseq' :  'Strelkasnvs',
+            'StrelkasnvsRnaseq_filtered' :  'Strelkasnvs_filtered'
         }
         self.__predictionModelToColumns = {
             "MuTectsnvs" : ["WES_mutationFileMutect"],
@@ -40,6 +63,14 @@ class VCFModelPredictor(object):
             "StrelkaIndelsRnaseq" : ["RNASeq_mutationFileStrelkaIndel"],
             "StrelkasnvsRnaseq" : ["RNASeq_mutationFileStrelkaSNV"],
             "ALL" : ["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
+                "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"],
+            "MuTectsnvs_filtered" : ["WES_mutationFileMutect"],
+            "StrelkaIndels_filtered" : ["WES_mutationFileStrelkaIndel"],
+            "Strelkasnvs_filtered" : ["WES_mutationFileStrelkaSNV"],
+            "MuTectRnaseq_filtered" : ["RNASeq_mutationFileMutect"],
+            "StrelkaIndelsRnaseq_filtered" : ["RNASeq_mutationFileStrelkaIndel"],
+            "StrelkasnvsRnaseq_filtered" : ["RNASeq_mutationFileStrelkaSNV"],
+            "ALL_filtered" : ["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
                 "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"]
         }
     
@@ -63,25 +94,22 @@ class VCFModelPredictor(object):
         valuecounts = dataset.isnull().all().value_counts()
         print(valuecounts)
         print("Prediction Columns Size for reducion: " + str(len(dataset.columns)))
-        x = dataset.fillna(value=0)
         
-        x, z = self.__df_reduce(x, filename=self.__trained_Models[modelType]["__transformerFilename"])
+        x, z = self.__df_reduce(dataset, filename=self.__trained_Models[modelType]["__transformerFilename"])
         
         print("Reduced column size: " + str(len(z)))
         reducedDataset = dataset[dataset.columns[z]]
         print("Columns selected on reduced dataset: " + str(reducedDataset.columns))
-        columns = reducedDataset.columns[reducedDataset.isnull().all()]
-        print("NaN columns after reducion:")
-        print(columns)
-        if len(columns) != 0:
-            print("Overlap is: " + str(((len(z)-len(columns))/len(z))*100) + "%")
-        else:
-            print("Overlap is 100% don't have NaN columns on reduced dataset!")
-        
         print("Finished reducing dataframe for prediction...")
+        print("Dataset rows: " + str(len(dataset.index)))
         print("Starting to predict labels...")
         predictions = clf.predict(x)
-        scores = clf.predict_proba(x)[:,1]
+        predictionscores = clf.predict_proba(x)
+        scores =[]
+        for i in range(0,len(predictions)):
+            value = list(clf.classes_).index(predictions[i])
+            scores.append(predictionscores[i, value])
+        
         print("Finished to predict labels using model "+str(modelType)+"...")
         print("="*40)
         return predictions, scores
@@ -90,8 +118,10 @@ class VCFModelPredictor(object):
         try: # load the objects from disk
             f = open(filename, 'rb')
             dic = pickle.load(f)
-            variance = dic['variance']; scaler = dic['scaler']; fts = dic['fts']
+            inputer= dic['inputer']; variance = dic['variance']; scaler = dic['scaler']; fts = dic['fts']
             f.close()
+            if inputer is not None:
+                X = inputer.transform(X)
             if variance is not None:
                 X = variance.transform(X)
             if scaler is not None:
@@ -108,6 +138,7 @@ class VCFModelPredictor(object):
         indexingdf = clinicalDataframe.dropna(
             subset=self.__predictionModelToColumns[modelType], 
             how='all')
+        print("Exprected " + str(len(indexingdf)) + " rows predicted!")
 
         predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=indexingdf.index)
         predicted["highriskflag"] = predicted["highriskflag"].astype(str).apply(lambda x: x.upper())

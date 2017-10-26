@@ -11,9 +11,11 @@ class PatientData(object):
             raise Exception("Patients must be a Series")
         self.__patients = patients
         self.__ages = None
+        self.__ageRisk = None
         self.__ISSs = None
         self.__genes_scoring = None
         self.__genes_function_associated = None
+        self.__genes_tlod = None
         self.__cytogenetic_features = None
         self.__flags = None
 
@@ -26,6 +28,9 @@ class PatientData(object):
     def get_ages(self):
         return self.__ages
     
+    def get_ageRisk(self):
+        return self.__ageRisk
+    
     def get_ISSs(self):
         return self.__ISSs
 
@@ -34,6 +39,9 @@ class PatientData(object):
 
     def get_genes_function_associated(self):
         return self.__genes_function_associated
+    
+    def get_genes_tlod(self):
+        return self.__genes_tlod
     
     def get_cytogenetic_features(self):
         return self.__cytogenetic_features
@@ -44,6 +52,12 @@ class PatientData(object):
     def set_ages(self, value):
         if isinstance(value, pd.Series):
             self.__ages = value
+        else:
+            raise Exception("Ages must be a Series")
+        
+    def set_ageRisk(self, value):
+        if isinstance(value, pd.Series):
+            self.__ageRisk = value
         else:
             raise Exception("Ages must be a Series")
         
@@ -65,6 +79,12 @@ class PatientData(object):
         else:
             raise Exception("Genes function associated must be a dataframe")
     
+    def set_genes_tlod(self, value):
+        if isinstance(value, pd.DataFrame):
+            self.__genes_tlod = value
+        else:
+            raise Exception("Genes tlod must be a dataframe")
+    
     def set_cytogenetic_features(self, value):
         if isinstance(value, pd.DataFrame):
             self.__cytogenetic_features = value
@@ -82,12 +102,16 @@ class PatientData(object):
         fulldf = [self.__patients.copy()]
         if self.__ages is not None:
             fulldf.append(self.__ages)
+        if self.__ageRisk is None:
+            fulldf.append(self.__ageRisk)
         if self.__ISSs is not None:
             fulldf.append(self.__ISSs)
         if self.__genes_scoring is not None:
             fulldf.append(self.__genes_scoring)
         if self.__genes_function_associated is not None:
             fulldf.append(self.__genes_function_associated)
+        if self.__genes_tlod is not None:
+            fulldf.append(self.__genes_tlod)
         if self.__cytogenetic_features is not None and withCytogenetics:
             fulldf.append(self.__cytogenetic_features)
         if self.__flags is not None and withFlags:
@@ -95,5 +119,4 @@ class PatientData(object):
         fulldf = pd.concat(fulldf, axis=1)
         if not withPatients:
             fulldf.drop("Patient", axis=1, inplace=True)
-        fulldf = fulldf.fillna(value=0)
         return fulldf        
