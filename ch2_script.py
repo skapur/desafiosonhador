@@ -6,6 +6,7 @@ from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce
 from sklearn.preprocessing import MaxAbsScaler
 import pandas as pd
+import numpy as np
 from copy import deepcopy
 
 def prediction_report(df):
@@ -90,16 +91,19 @@ def main(argv):
     # rseq_new_scl.fit(rseq_data)
     # trf_rseq['scaler'] = rseq_new_scl
 
-    proba_fun = lambda x: [clf.predict_proba(x)[0][1] for name, clf in clf_list_rseq]
-    pred_fun = lambda x: clf_rseq.predict(proba_fun(x))
+
+    proba_fun_rs = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_rseq]).reshape(1, -1)
+    pred_fun_rs = lambda x: clf_rseq.predict(proba_fun_rs(x))[0]
+    conf_fun_rs = lambda x: clf_rseq.predict_proba(proba_fun_rs(x))[0][1]
+
     mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
 
     print("Predicting with RS...")
     # Make predictions
     mod_rseq = MMChallengePredictor(
             mmcdata = mmcd,
-            predict_fun = pred_fun,
-            confidence_fun = proba_fun,
+            predict_fun = pred_fun_rs,
+            confidence_fun = conf_fun_rs,
             data_types = [("RNASeq", "gene")],
             single_vector_apply_fun = mv_fun_rseq,
             multiple_vector_apply_fun = lambda x: x
@@ -129,13 +133,15 @@ def main(argv):
     mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
 
     # Make predictions
-    proba_fun = lambda x: [clf.predict_proba(x)[0][1] for name, clf in clf_list_marrays]
-    pred_fun = lambda x: clf_marrays.predict(proba_fun(x))
+    proba_fun_ma = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_marrays]).reshape(1, -1)
+    pred_fun_ma = lambda x: clf_marrays.predict(proba_fun_ma(x))[0]
+    conf_fun_ma = lambda x: clf_marrays.predict_proba(proba_fun_ma(x))[0][1]
+
     print("Predicting with MA...")
     mod_marryas = MMChallengePredictor(
                 mmcdata = mmcd,
-                predict_fun = lambda x: pred_fun,
-                confidence_fun = lambda x: proba_fun,
+                predict_fun = pred_fun_ma,
+                confidence_fun = conf_fun_ma,
                 data_types = [("MA", "gene")],
                 single_vector_apply_fun = mv_fun,
                 multiple_vector_apply_fun = lambda x: x
