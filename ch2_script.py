@@ -110,7 +110,7 @@ def main(argv):
     )
     res_rseq = mod_rseq.predict_dataset()
 
-
+    mod_rseq.get_feature_vector('MMRF_2507')
     # ======== MICROARRAYS ========
     print("Loading MA transformer")
     #Load fitted transformers and model
