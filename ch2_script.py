@@ -117,12 +117,15 @@ def main(argv):
     with open('/desafiosonhador/transformers_microarrays.sav', 'rb') as f:
         trf_marrays = pickle.load(f)
 
-    print("Loading MA classifier")
-    with open('/desafiosonhador/ma_fitted_classifier_list.sav', 'rb') as f:
-        clf_list_marrays = pickle.load(f)
+    # print("Loading MA classifier")
+    # with open('/desafiosonhador/ma_fitted_classifier_list.sav', 'rb') as f:
+    #     clf_list_marrays = pickle.load(f)
+    #
+    # with open('/desafiosonhador/ma_fitted_stack_classifier.sav', 'rb') as f:
+    #     clf_marrays = pickle.load(f)
 
-    with open('/desafiosonhador/ma_fitted_stack_classifier.sav', 'rb') as f:
-        clf_marrays = pickle.load(f)
+    with open('/desafiosonhador/ma_voting_clf.sav', 'rb') as f:
+        ma_voting = pickle.load(f)
 
     # Redefining scaler for marrays
     # marrays_new_scl = MaxAbsScaler()
@@ -133,15 +136,15 @@ def main(argv):
     mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
 
     # Make predictions
-    proba_fun_ma = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_marrays]).reshape(1, -1)
-    pred_fun_ma = lambda x: clf_marrays.predict(proba_fun_ma(x))[0]
-    conf_fun_ma = lambda x: clf_marrays.predict_proba(proba_fun_ma(x))[0][1]
+    # proba_fun_ma = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_marrays]).reshape(1, -1)
+    # pred_fun_ma = lambda x: clf_marrays.predict(proba_fun_ma(x))[0]
+    # conf_fun_ma = lambda x: clf_marrays.predict_proba(proba_fun_ma(x))[0][1]
 
     print("Predicting with MA...")
     mod_marryas = MMChallengePredictor(
                 mmcdata = mmcd,
-                predict_fun = pred_fun_ma,
-                confidence_fun = conf_fun_ma,
+                predict_fun = lambda x: ma_voting.predict(x)[0],
+                confidence_fun = lambda x: ma_voting.predict_proba(x)[0][1],
                 data_types = [("MA", "gene")],
                 single_vector_apply_fun = mv_fun,
                 multiple_vector_apply_fun = lambda x: x
