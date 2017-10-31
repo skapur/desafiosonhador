@@ -16,6 +16,8 @@ class PatientData(object):
         self.__genes_scoring = None
         self.__genes_function_associated = None
         self.__genes_tlod = None
+        self.__genes_qss = None
+        self.__genes_big_qss = None
         self.__cytogenetic_features = None
         self.__flags = None
 
@@ -42,6 +44,12 @@ class PatientData(object):
     
     def get_genes_tlod(self):
         return self.__genes_tlod
+    
+    def get_genes_qss(self):
+        return self.__genes_qss
+    
+    def get_genes_big_qss(self):
+        return self.__genes_big_qss
     
     def get_cytogenetic_features(self):
         return self.__cytogenetic_features
@@ -84,6 +92,19 @@ class PatientData(object):
             self.__genes_tlod = value
         else:
             raise Exception("Genes tlod must be a dataframe")
+        
+    def set_genes_qss(self, value):
+        if isinstance(value, pd.DataFrame):
+            self.__genes_qss = value
+        else:
+            raise Exception("Genes QSS must be a dataframe")    
+    
+            
+    def set_genes_big_qss(self, value):
+        if isinstance(value, pd.DataFrame):
+            self.__genes_big_qss = value
+        else:
+            raise Exception("Genes QSS must be a dataframe") 
     
     def set_cytogenetic_features(self, value):
         if isinstance(value, pd.DataFrame):
@@ -112,6 +133,10 @@ class PatientData(object):
             fulldf.append(self.__genes_function_associated)
         if self.__genes_tlod is not None:
             fulldf.append(self.__genes_tlod)
+        if self.__genes_qss is not None:
+            fulldf.append(self.__genes_qss)
+        if self.__genes_big_qss is not None:
+            fulldf.append(self.__genes_big_qss)
         if self.__cytogenetic_features is not None and withCytogenetics:
             fulldf.append(self.__cytogenetic_features)
         if self.__flags is not None and withFlags:
