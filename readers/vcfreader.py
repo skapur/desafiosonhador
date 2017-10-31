@@ -24,6 +24,8 @@ class VCFReader(object):
         genetoscore = {}
         gene_function = {}
         genes_tlod = {}
+        genes_bigqss = {}
+        genes_qss = {}
         vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
         for record in vcfrecords:
             if 'ANN' in record.INFO.keys():
@@ -49,10 +51,19 @@ class VCFReader(object):
                         if tlod > nlod:
                             genes_tlod["TLOD_"+gene_instance] = 1
                     
+                    if 'QSS' in record.INFO.keys() and 'QSS_NT' in record.INFO.keys():
+                        qss = record.INFO['QSS']
+                        qss_nt = record.INFO['QSS_NT']
+                        if qss > 10:
+                            genes_qss["QSS_"+gene_instance] = 1
+                        if qss > qss_nt:
+                            genes_bigqss["BIGQSS_"+gene_instance] = 1
+                        
+                    
             #else:
                 #print(record)
                 #print('File: '+filename+" don't have ANN entry")
-        return genetoscore, gene_function, genes_tlod
+        return genetoscore, gene_function, genes_tlod, genes_qss, genes_bigqss
     
     def getAllFunctions(self, filenames):
         functionAnnotations = set()
@@ -113,6 +124,25 @@ class VCFReader(object):
                         if tlod > nlod:
                             genes.add("TLOD_"+gene_instance)
         return genes
+    
+    def getGenesWithUpperQSI(self, filename, compressed=True):
+        genes = set()
+        vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
+        for record in vcfrecords:
+            if 'ANN' in record.INFO.keys():
+                ann = record.INFO['ANN']
+                for firstann in ann:
+                    firstann = firstann.split('|')
+                    gene_instance = firstann[3]
+                    if 'QSS' in record.INFO.keys() and 'QSS_NT' in record.INFO.keys():
+                        qss = record.INFO['QSS']
+                        qss_nt = record.INFO['QSS_NT']
+                        if qss > 10:
+                            genes.add("QSS_"+gene_instance)
+                        if qss > qss_nt:
+                            genes.add("BIG_QSS_"+gene_instance)
+        return genes
+    
     def readFiles(self, files):
         for filepath in files:
             self.__vcfinstances[filepath] = self.readVCFFile(filename=filepath, compressed=True)
