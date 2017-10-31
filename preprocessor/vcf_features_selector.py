@@ -35,9 +35,19 @@ class VCFFeaturesSelector(object):
         functions = self.__generateFilteredGenesFunctionAssociatedDF(self.__data)
         if functions is not None:    
             filteredData.set_genes_function_associated(functions)
+        
         tloads = self.__generateFilteredGenesTLODFeaturesDF(self.__data)
         if tloads is not None:
             filteredData.set_genes_tlod(tloads)
+        
+        qss = self.__generateFilteredGenesQSSFeaturesDF(self.__data)
+        if qss is not None:
+            filteredData.set_genes_qss(qss)
+        
+        big_qss = self.__generateFilteredGenesBigQSSFeaturesDF(self.__data)
+        if big_qss is not None:
+            filteredData.set_genes_big_qss(big_qss)    
+  
         cyto = self.__generateFilteredCytogeneticFeaturesDF(self.__data)
         if cyto is not None:
             filteredData.set_cytogenetic_features(cyto)
@@ -100,6 +110,24 @@ class VCFFeaturesSelector(object):
         if dataframe is not None:
             features = self.__loadSerializedFeatures('genesTlod')
             self.__get_Column_Counts(features, dataframe, 'genesTlod', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
+    
+    def __generateFilteredGenesQSSFeaturesDF(self, data):
+        dataframe = data.get_genes_qss()
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesQss')
+            self.__get_Column_Counts(features, dataframe, 'genesQss', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
+    
+    def __generateFilteredGenesBigQSSFeaturesDF(self, data):
+        dataframe = data.get_genes_big_qss()
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesBigQss')
+            self.__get_Column_Counts(features, dataframe, 'genesBigQss', data.get_dataset_origin())
             filteredDataframe = dataframe.loc[:, features]
             return filteredDataframe
         return None

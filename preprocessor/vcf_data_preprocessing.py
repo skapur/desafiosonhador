@@ -60,10 +60,14 @@ class VCFDataPreprocessor(object):
                 vcfgenescoredict = {}
                 vcfgenesfunctiondict = {}
                 vcfgenestloddict = {}
+                vcfgenesqssdict = {}
+                vcfgenesbigqssdict = {}
                 for k, v in zip(filenames, self.__executor.map(reader.readVCFFileFindCompression, paths)):
                     vcfgenescoredict[k] = v[0]
                     vcfgenesfunctiondict[k] = v[1]
                     vcfgenestloddict[k] = v[2]
+                    vcfgenesqssdict[k] = v[3]
+                    vcfgenesbigqssdict[k] = v[4]
                 
                 vcfGenesScoreDF = self.__tranfromVCFDictToVCFDataframe(vcfgenescoredict, datasetDataframe, GENOMIC_PROPS[dataset])
                 vcfGenesScoreDF[vcfGenesScoreDF < 500] = np.nan
@@ -80,6 +84,16 @@ class VCFDataPreprocessor(object):
                 vcfGenesTLODDF = vcfGenesTLODDF.fillna(value=0)
                 if not vcfGenesTLODDF.empty:
                     data.set_genes_tlod(vcfGenesTLODDF)
+                    
+                vcfGenesQSSDF = self.__tranfromVCFDictToVCFDataframe(vcfgenesqssdict, datasetDataframe, GENOMIC_PROPS[dataset])
+                vcfGenesQSSDF = vcfGenesQSSDF.fillna(value=0)
+                if not vcfGenesQSSDF.empty:
+                    data.set_genes_qss(vcfGenesQSSDF)
+                
+                vcfGenesBigQSSDF = self.__tranfromVCFDictToVCFDataframe(vcfgenesbigqssdict, datasetDataframe, GENOMIC_PROPS[dataset])
+                vcfGenesBigQSSDF = vcfGenesBigQSSDF.fillna(value=0)
+                if not vcfGenesBigQSSDF.empty:
+                    data.set_genes_big_qss(vcfGenesBigQSSDF)    
                 
                 data.set_cytogenetic_features(datasetDataframe[CYTOGENETICS_PROPS])
                 
@@ -103,10 +117,14 @@ class VCFDataPreprocessor(object):
         
         patients = None
         ages = None
+        ageRisk = None
         iSSs = None
         genes_scoring = None
         genes_function_associated = None
         cytogenetic_features = None
+        tlod = None
+        qss = None
+        big_qss = None
         flags = None
         containsFiltered = False
         for dataset in datasets.values():
@@ -120,6 +138,10 @@ class VCFDataPreprocessor(object):
                 ages = dataset.get_ages()
             else:
                 ages = pd.concat([ages, dataset.get_ages()])
+            if ageRisk is None:
+                ageRisk = dataset.get_ageRisk()
+            else:
+                ageRisk = pd.concat([ages, dataset.get_ageRisk()])
             if iSSs is None:
                 iSSs = dataset.get_ISSs()
             else:
@@ -132,6 +154,18 @@ class VCFDataPreprocessor(object):
                 genes_function_associated = dataset.get_genes_function_associated()
             else:
                 genes_function_associated = pd.concat([genes_function_associated, dataset.get_genes_function_associated()], axis=1)
+            if tlod is None:
+                tlod = dataset.get_genes_tlod()
+            elif dataset.get_genes_tlod() is not None:
+                tlod = pd.concat([tlod, dataset.get_genes_tlod()], axis=1)
+            if qss is None:
+                qss = dataset.get_genes_qss()
+            elif dataset.get_genes_qss() is not None:
+                qss = pd.concat([qss, dataset.get_genes_qss()], axis=1)
+            if big_qss is None:
+                big_qss = dataset.get_genes_big_qss()
+            elif  dataset.get_genes_big_qss() is not None:
+                big_qss = pd.concat([big_qss, dataset.get_genes_big_qss()], axis=1)
             if cytogenetic_features is None:
                 cytogenetic_features = dataset.get_cytogenetic_features()
             else:
@@ -143,39 +177,42 @@ class VCFDataPreprocessor(object):
         
         data = None
         if patients is not None:
-            patients = patients.groupby(patients.index).first()
+            patients = self.__processFirstOfGroupedDataFrame(patients)
             datasetname = 'ALL'
             if containsFiltered:
                 datasetname = datasetname + "_filtered"
             data = PatientData(datasetname, patients)
             if ages is not None:        
-                ages = ages.groupby(ages.index).first()
-                data.set_ages(ages)
+                data.set_ages(self.__processFirstOfGroupedDataFrame(ages))
             if iSSs is not None:
-                iSSs = iSSs.groupby(iSSs.index).first()
-                data.set_ISSs(iSSs)
+                data.set_ISSs(self.__processFirstOfGroupedDataFrame(iSSs))
             if genes_scoring is not None:
-                genes_scoring = genes_scoring.groupby(genes_scoring.columns, axis=1).sum()
-                genes_scoring[genes_scoring > 1] = 1
-                genes_scoring[genes_scoring == 0] = np.nan
-                genes_scoring = genes_scoring.dropna(axis=1, how='all')
-                #genes_scoring = genes_scoring.groupby(genes_scoring.columns, axis=1).sum() 
-                genes_scoring = genes_scoring.fillna(value=0)
-                data.set_genes_scoring(genes_scoring)
+                data.set_genes_scoring(self.__processBinaryGroupedDataFrame(genes_scoring))
             if genes_function_associated is not None:
-                genes_function_associated = genes_function_associated.groupby(genes_function_associated.columns, axis=1).sum()
-                genes_function_associated[genes_function_associated > 1] = 1
-                genes_function_associated[genes_function_associated == 0] = np.nan
-                genes_function_associated = genes_function_associated.dropna(axis=1, how='all')
-                genes_function_associated = genes_function_associated.fillna(value=0)
-                data.set_genes_function_associated(genes_function_associated)
+                data.set_genes_function_associated(self.__processBinaryGroupedDataFrame(genes_function_associated))
+            if tlod is not None:
+                data.set_genes_tlod(self.__processBinaryGroupedDataFrame(tlod))
+            if qss is not None:
+                data.set_genes_qss(self.__processBinaryGroupedDataFrame(qss))
+            if big_qss is not None:
+                data.set_genes_big_qss(self.__processBinaryGroupedDataFrame(big_qss))
             if cytogenetic_features is not None:
-                cytogenetic_features = cytogenetic_features.groupby(cytogenetic_features.index).first()
-                data.set_cytogenetic_features(cytogenetic_features)
+                data.set_cytogenetic_features(self.__processFirstOfGroupedDataFrame(cytogenetic_features))
             if flags is not None:
-                flags = flags.groupby(flags.index).first()
-                data.set_flags(flags)
+                data.set_flags(self.__processFirstOfGroupedDataFrame(flags))
         return data
+    
+    def __processFirstOfGroupedDataFrame(self, dataframe):
+        dataframe = dataframe.groupby(dataframe.index).first()
+        return dataframe
+    
+    def __processBinaryGroupedDataFrame(self, dataframe):
+        dataframe = dataframe.groupby(dataframe.columns, axis=1).sum()
+        dataframe[dataframe > 1] = 1
+        dataframe[dataframe == 0] = np.nan
+        dataframe = dataframe.dropna(axis=1, how='all')
+        dataframe = dataframe.fillna(value=0)
+        return dataframe
      
     def __fillClinicalData(self, patientdata, datasetDataframe, forTraining=False, groupAges=False):
         colums = self.__clinicalData.columns
@@ -190,6 +227,7 @@ class VCFDataPreprocessor(object):
                 for row in ageDF.index:
                     ageDF.at[row] = self.__ageToGroup(ageDF[row])
             patientdata.set_ages(ageDF)
+            ageRiskDF = ageRiskDF.rename(columns = {'D_Age':'D_Age_Risk'})
             ageRiskDF[ageRiskDF >= 65] = 1
             ageRiskDF[ageRiskDF < 65] = 0
             patientdata.set_ageRisk(ageRiskDF)
