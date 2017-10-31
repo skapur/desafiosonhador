@@ -141,7 +141,7 @@ class VCFDataPreprocessor(object):
             if ageRisk is None:
                 ageRisk = dataset.get_ageRisk()
             else:
-                ageRisk = pd.concat([ages, dataset.get_ageRisk()])
+                ageRisk = pd.concat([ageRisk, dataset.get_ageRisk()])
             if iSSs is None:
                 iSSs = dataset.get_ISSs()
             else:
@@ -184,6 +184,8 @@ class VCFDataPreprocessor(object):
             data = PatientData(datasetname, patients)
             if ages is not None:        
                 data.set_ages(self.__processFirstOfGroupedDataFrame(ages))
+            if ageRisk is not None:        
+                data.set_ageRisk(self.__processFirstOfGroupedDataFrame(ageRisk))
             if iSSs is not None:
                 data.set_ISSs(self.__processFirstOfGroupedDataFrame(iSSs))
             if genes_scoring is not None:
@@ -222,12 +224,12 @@ class VCFDataPreprocessor(object):
         
         if containsAge:
             ageDF = datasetDataframe.loc[datasetDataframe.index, "D_Age"].copy()
-            ageRiskDF = ageDF.copy()
+            ageRiskDF = datasetDataframe.loc[datasetDataframe.index, "D_Age"].copy()
             if groupAges:
                 for row in ageDF.index:
                     ageDF.at[row] = self.__ageToGroup(ageDF[row])
             patientdata.set_ages(ageDF)
-            ageRiskDF = ageRiskDF.rename(columns = {'D_Age':'D_Age_Risk'})
+            ageRiskDF.name = "D_Age_Risk"
             ageRiskDF[ageRiskDF >= 65] = 1
             ageRiskDF[ageRiskDF < 65] = 0
             patientdata.set_ageRisk(ageRiskDF)

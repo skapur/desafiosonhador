@@ -123,7 +123,8 @@ class PatientData(object):
         fulldf = [self.__patients.copy()]
         if self.__ages is not None:
             fulldf.append(self.__ages)
-        if self.__ageRisk is None:
+        if self.__ageRisk is not None:
+            self.__ageRisk.name = "D_Age_Risk"
             fulldf.append(self.__ageRisk)
         if self.__ISSs is not None:
             fulldf.append(self.__ISSs)

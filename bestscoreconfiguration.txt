@@ -1,0 +1,22 @@
+used only filtered data
+
+feature filtering muctect:
+genes_scoring: 5.9% 
+genes_function_associated: 3.9%
+cytogenetic_feature: 40%
+genes_tlod: 41%
+
+feature selecting strelka:
+genes_scoring: 16% 
+genes_function_associated: 24.3%
+cytogenetic_feature: 40%
+genes_qss: 6.1%
+genes_big_qss: 11.3%
+
+selected % of features from all selected features:
+
+muctect: 100%
+strelka: 100%
+
+algorithm: nnet (250) (muctect)
+strelka & all: logistic regression 

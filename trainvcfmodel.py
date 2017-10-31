@@ -1,7 +1,7 @@
 from builtins import range
+from copyreg import pickle
 import pickle
 import sys
-import numpy as np
 
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection.univariate_selection import SelectPercentile
@@ -13,6 +13,7 @@ from sklearn.preprocessing.imputation import Imputer
 from datastructures.patientdata import PatientData
 from machinelearning.vcf_model_predictor import VCFModelPredictor
 from machinelearning.vcf_model_trainer import VCFModelTrainer
+import numpy as np
 import os.path as path
 import pandas as pd
 from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
@@ -111,28 +112,31 @@ def read_serialized_dataset(datasetpath):
 def executeCodeOnDarwin():
     clinicalfile = '/home/dreamchallenge/synapse/syn7222203/Clinical Data/globalClinTraining.csv'
     dataFolder = '/home/dreamchallenge/link-data/'
-    datasetsFolder = '/home/dreamchallenge/vcf-datasets_v2'
+    datasetsFolder = '/home/dreamchallenge/vcf-datasets_v3'
     #train_serialize_models(clinicalfile, dataFolder, modelsFolder, doCV=False, saveFiles=False, fts_percentile=2, joinAllDatasets=False, savedataset=True)
     generate_datasets_forTraining(clinicalfile, dataFolder, datasetsFolder)
     
 def executeCodeManually():
 
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v2/MuTectsnvs_filtered_dataset_CH1.pkl'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v2/StrelkaIndels_dataset_CH1.pkl'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v2/Strelkasnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/StrelkaIndels_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
     
     dataset = read_serialized_dataset(datasetpath)
     
     print(dataset.get_flags().value_counts())
-    #filterator = VCFFeaturesSelector(dataset)
-    #dataset = filterator.generateFilteredData()
-    #allX = dataset.getFullDataframe(False,False)
+    print(dataset.getFullDataframe(False,False).columns)
+    filterator = VCFFeaturesSelector(dataset)
+    dataset = filterator.generateFilteredData()
+    allX = dataset.getFullDataframe(False,False)
     
     #allX = dataset.get_genes_scoring() #5.9
     #allX = dataset.get_genes_function_associated()
     #allX = dataset.get_cytogenetic_features()
-    allX = dataset.get_genes_tlod()
+    #allX = dataset.get_genes_tlod()
+    #allX = dataset.get_genes_qss()
+    #allX = dataset.get_genes_big_qss()
     #allX = dataset.getFullDataframe(False,False)
     
     serializeFeatures(modelsFolder, dataset, allX)
@@ -142,21 +146,21 @@ def executeCodeManually():
     #variance = VarianceThreshold(threshold=(.9 * (1 - .9)))
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=38)
+    fts = SelectPercentile(percentile=100)
     y = dataset.get_flags()
-    X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, False))
+    X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     print(allX.columns[z])
-    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesTlod")
+    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesBigQss")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
     trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    #clf = trainer.trainModel('logisticRegression', X, y)
-    #serializeClassifier(modelsFolder, dataset, clf)
+    clf = trainer.trainModel('logisticRegression', X, y)
+    serializeClassifier(modelsFolder, dataset, clf)
     
 def executeJoinModelCodeManually():
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets_v2/MuTectsnvs_filtered_dataset_CH1.pkl',
+    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl',
              #'/home/tiagoalves/rrodrigues/vcf-datasets/StrelkaIndels_dataset_CH1.pkl',
-             '/home/tiagoalves/rrodrigues/vcf-datasets_v2/Strelkasnvs_filtered_dataset_CH1.pkl']
+             '/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl']
     
     datasets = {}
     preprocessor = VCFDataPreprocessor(None)
@@ -173,14 +177,42 @@ def executeJoinModelCodeManually():
     inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=47)
+    fts = SelectPercentile(percentile=71)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
-    print(allX.columns[z])
-    
-    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('nnet', X, y)
+    columnsToCheck = allX.columns[z]
+    print(columnsToCheck)
+    checkifinDataset(columnsToCheck, dataset.get_genes_scoring().columns, "Genes Scoring")
+    checkifinDataset(columnsToCheck, dataset.get_genes_function_associated().columns, "Genes Function")
+    checkifinDataset(columnsToCheck, dataset.get_genes_tlod().columns, "Genes Tlod")
+    checkifinDataset(columnsToCheck, dataset.get_genes_qss().columns, "Genes QSS")
+    checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
+    compareNames(dataset.get_genes_qss().columns, dataset.get_genes_big_qss().columns)
+    #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('logisticRegression', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
+
+def compareNames(columns1, columns2):
+    columns1 = [x.replace("QSS_", "") for x in columns1]
+    columns1 = set(columns1)
+    #columns2 = [x.replace("TLOD_","") for x in columns2]
+    #columns2 = [x.replace("QSS_", "") for x in columns2]
+    columns2 = [x.replace("BIGQSS_", "") for x in columns2]
+    columns2 = set(columns2)
+    inter = columns1 & columns2
+    print("names")
+    print("inter size: "+str(len(inter)))
+    print("percentage in genes scoring: " + str(len(inter)/len(columns1)))
+
+def checkifinDataset(columnsToCheck, allColumns, datasetname):
+    columnsToCheck = set(columnsToCheck)
+    allColumns = set(allColumns)
+    intersection = allColumns & columnsToCheck
+    print(datasetname)
+    intersize = len(intersection)
+    print("inter size: "+str(intersize))
+    print("percentage in all: " + str(intersize/len(allColumns)))
 
 def compareUnfilteredVSFiltered():
     unfilteredpaths = ['/home/tiagoalves/rrodrigues/loaded-datasets/MuTectsnvs_dataset_Unfiltered_CH1.pkl',
@@ -227,8 +259,51 @@ def evaluateDatasetModel(dataset):
         print(classification_report(true_y, pred_y))
     
 
+def checkFeaturePercentage():
+    columns='/home/tiagoalves/rrodrigues/desafiosonhador/serialized_features/Strelkasnvs_filtered_genesQss_featColumns_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v3/MuTectsnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v3/StrelkaIndels_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
+    
+    dataset = read_serialized_dataset(datasetpath)
+    print(dataset.getFullDataframe(False, False).columns)
+    #allX = dataset.get_genes_scoring() #5.9
+    #allX = dataset.get_genes_function_associated()
+    #allX = dataset.get_cytogenetic_features()
+    #allX = dataset.get_genes_tlod()
+    allX = dataset.get_genes_qss()
+    #allX = dataset.get_genes_big_qss()
+    #filterator = VCFFeaturesSelector(dataset)
+    #dataset = filterator.generateFilteredData()
+    #allX = dataset.getFullDataframe(False,False)
+    f = open(columns, 'rb')
+    selectedcolumns = set(pickle.load(f))
+    f.close()
+    print(len(selectedcolumns) /len(allX.columns))
+    
+    trainer = VCFModelTrainer()
+    inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
+    variance = None
+    scaler = StandardScaler()
+    fts = SelectPercentile(percentile=6.1)
+    y = dataset.get_flags()
+    X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, None)
+    result = set(allX.columns[z])
+    print(len(selectedcolumns)/len(result))
+    print(len(result))
+    print(len(selectedcolumns))
+    print(selectedcolumns-result)
+    
+def checkmodel():
+    f = open("/home/tiagoalves/rrodrigues/desafiosonhador/serialized_models/MuTectsnvs_filtered_Classifier_CH1.pkl", "rb")
+    clf = pickle.load(f)
+    f.close()
+    print(clf.__class__.__name__)
+
 if __name__ == '__main__':
     #executeCodeOnDarwin()
     #executeCodeManually()
-    executeJoinModelCodeManually()
+    #executeJoinModelCodeManually()
     #compareUnfilteredVSFiltered()
+    #checkFeaturePercentage()
+    checkmodel()

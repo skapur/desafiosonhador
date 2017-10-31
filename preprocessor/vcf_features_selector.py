@@ -26,6 +26,7 @@ class VCFFeaturesSelector(object):
     def generateFilteredData(self):
         filteredData = PatientData(self.__data.get_dataset_origin(), self.__data.get_patients())
         filteredData.set_ages(self.__data.get_ages())
+        filteredData.set_ageRisk(self.__data.get_ageRisk())
         filteredData.set_ISSs(self.__data.get_ISSs())
         filteredData.set_flags(self.__data.get_flags())
         scoring = self.__generateFilteredGenesScoringDF(self.__data)
