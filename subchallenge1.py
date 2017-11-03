@@ -31,16 +31,18 @@ def generateSubModelPredictions(preprocessor, predictor, datasets):
     print("Start using individual datasets to predict...")
     print("="*40)
     for modelType in datasets.keys():
-        selector = VCFFeaturesSelector(datasets[modelType])
-        dataset = selector.generateFilteredData()
-        X = dataset.getFullDataframe(False, False)
-        predictions, scores = predictor.generate_predictions_scores(X, modelType)
-        predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), modelType, predictions, scores)
-        predictedDF.set_index("patient", drop=False, append=False, inplace=True)
-        predictedDFs.append(predictedDF)
+        if modelType is "MuTectsnvs" or "MuTectRnaseq":
+            selector = VCFFeaturesSelector(datasets[modelType])
+            dataset = selector.generateFilteredData()
+            X = dataset.getFullDataframe(False, False)
+            predictions, scores = predictor.generate_predictions_scores(X, modelType)
+            predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), modelType, predictions, scores)
+            predictedDF.set_index("patient", drop=False, append=False, inplace=True)
+            predictedDFs.append(predictedDF)
     
     print("Finished individual datasets prediction...")
     print("="*40)
+    '''
     print("Start using global dataset to predict...")
     print("="*40)
     data = preprocessor.joinDatasetsToSingleDataset(datasets)
@@ -50,7 +52,7 @@ def generateSubModelPredictions(preprocessor, predictor, datasets):
     predictedALLDF.set_index("patient", drop=False, append=False, inplace=True)
     predictedDFs.append(predictedALLDF)
     print("Finished global dataset prediction...")
-    print("="*40)
+    print("="*40)'''
     return predictedDFs
     
 def selectBestScoresFromDifferentModels(predictedDFs):
