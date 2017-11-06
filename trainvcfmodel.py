@@ -119,9 +119,9 @@ def executeCodeOnDarwin():
 def executeCodeManually():
 
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
     #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/StrelkaIndels_dataset_CH1.pkl'
-    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
     
     dataset = read_serialized_dataset(datasetpath)
     
@@ -302,8 +302,8 @@ def checkmodel():
 
 if __name__ == '__main__':
     #executeCodeOnDarwin()
-    #executeCodeManually()
+    executeCodeManually()
     #executeJoinModelCodeManually()
     #compareUnfilteredVSFiltered()
     #checkFeaturePercentage()
-    checkmodel()
+    #checkmodel()
