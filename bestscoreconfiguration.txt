@@ -19,4 +19,16 @@ muctect: 100%
 strelka: 100%
 
 algorithm: nnet (250) (muctect)
-strelka & all: logistic regression 
+strelka & all: logistic regression
+
+join manually (71% with nnet)
+
+
+Test: 
+apply 35% + MPLC default (muctect)
+test_f1: 0.9565 (+/- 0.0500)
+train_f1: 0.9907 (+/- 0.0016)
+
+apply 5.2% +  MPLC default (strelka)
+test_f1: 0.7626 (+/- 0.0559)
+train_f1: 0.9976 (+/- 0.0022)

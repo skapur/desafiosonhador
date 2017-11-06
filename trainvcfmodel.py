@@ -119,9 +119,9 @@ def executeCodeOnDarwin():
 def executeCodeManually():
 
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
     #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/StrelkaIndels_dataset_CH1.pkl'
-    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
     
     dataset = read_serialized_dataset(datasetpath)
     
@@ -146,13 +146,13 @@ def executeCodeManually():
     #variance = VarianceThreshold(threshold=(.9 * (1 - .9)))
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=100)
+    fts = SelectPercentile(percentile=35)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     print(allX.columns[z])
     #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesBigQss")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=True))
     clf = trainer.trainModel('nnet', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
     
@@ -177,7 +177,7 @@ def executeJoinModelCodeManually():
     inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=71)
+    fts = SelectPercentile(percentile=3.3)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     columnsToCheck = allX.columns[z]
@@ -302,8 +302,8 @@ def checkmodel():
 
 if __name__ == '__main__':
     #executeCodeOnDarwin()
-    #executeCodeManually()
-    executeJoinModelCodeManually()
+    executeCodeManually()
+    #executeJoinModelCodeManually()
     #compareUnfilteredVSFiltered()
     #checkFeaturePercentage()
     #checkmodel()
