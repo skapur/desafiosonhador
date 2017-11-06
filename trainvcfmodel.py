@@ -119,9 +119,9 @@ def executeCodeOnDarwin():
 def executeCodeManually():
 
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
     #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/StrelkaIndels_dataset_CH1.pkl'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
     
     dataset = read_serialized_dataset(datasetpath)
     
@@ -152,8 +152,8 @@ def executeCodeManually():
     print(allX.columns[z])
     #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesBigQss")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('logisticRegression', X, y)
+    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('nnet', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
     
 def executeJoinModelCodeManually():
@@ -189,8 +189,8 @@ def executeJoinModelCodeManually():
     checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
     compareNames(dataset.get_genes_qss().columns, dataset.get_genes_big_qss().columns)
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('logisticRegression', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('logisticRegression', X, y)
+    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('nnet', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
 
 def compareNames(columns1, columns2):
@@ -302,8 +302,8 @@ def checkmodel():
 
 if __name__ == '__main__':
     #executeCodeOnDarwin()
-    executeCodeManually()
-    #executeJoinModelCodeManually()
+    #executeCodeManually()
+    executeJoinModelCodeManually()
     #compareUnfilteredVSFiltered()
     #checkFeaturePercentage()
     #checkmodel()
