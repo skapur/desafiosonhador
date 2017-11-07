@@ -19,7 +19,7 @@ class VCFModelTrainer(object):
             "nbayes" : GaussianNB(),
             "decisionTree" : DecisionTreeClassifier(max_depth = 4, criterion = "gini", splitter = "random"),
             "logisticRegression" : LogisticRegression(C = 0.001),
-            "svm" : SVC(kernel = "linear", C = 1, probability = True),
+            "svm" : SVC(probability = True),
             'nnet' : MLPClassifier(),
             'rand_forest' : RandomForestClassifier(max_depth = 5, criterion = "entropy", n_estimators = 100),
             'bagging': BaggingClassifier(max_samples = 1, bootstrap = True)

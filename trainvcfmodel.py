@@ -146,14 +146,20 @@ def executeCodeManually():
     #variance = VarianceThreshold(threshold=(.9 * (1 - .9)))
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=35)
+    fts = SelectPercentile(percentile=23)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
-    print(allX.columns[z])
+    columnsToCheck = allX.columns[z]
+    print(columnsToCheck)
+    checkifinDataset(columnsToCheck, dataset.get_genes_scoring().columns, "Genes Scoring")
+    checkifinDataset(columnsToCheck, dataset.get_genes_function_associated().columns, "Genes Function")
+    checkifinDataset(columnsToCheck, dataset.get_genes_tlod().columns, "Genes Tlod")
+    #checkifinDataset(columnsToCheck, dataset.get_genes_qss().columns, "Genes QSS")
+    #checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
     #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesBigQss")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=True))
-    clf = trainer.trainModel('nnet', X, y)
+    trainer.doCrossValidation('svm', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('svm', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
     
 def executeJoinModelCodeManually():
@@ -177,7 +183,7 @@ def executeJoinModelCodeManually():
     inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=3.3)
+    fts = SelectPercentile(percentile=7)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     columnsToCheck = allX.columns[z]
@@ -187,14 +193,14 @@ def executeJoinModelCodeManually():
     checkifinDataset(columnsToCheck, dataset.get_genes_tlod().columns, "Genes Tlod")
     checkifinDataset(columnsToCheck, dataset.get_genes_qss().columns, "Genes QSS")
     checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
-    compareNames(dataset.get_genes_qss().columns, dataset.get_genes_big_qss().columns)
+    compareNames(dataset.get_genes_scoring().columns, dataset.get_genes_big_qss().columns)
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('nnet', X, y)
+    trainer.doCrossValidation('svm', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('svm', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
 
 def compareNames(columns1, columns2):
-    columns1 = [x.replace("QSS_", "") for x in columns1]
+    #columns1 = [x.replace("QSS_", "") for x in columns1]
     columns1 = set(columns1)
     #columns2 = [x.replace("TLOD_","") for x in columns2]
     #columns2 = [x.replace("QSS_", "") for x in columns2]
@@ -302,8 +308,8 @@ def checkmodel():
 
 if __name__ == '__main__':
     #executeCodeOnDarwin()
-    executeCodeManually()
-    #executeJoinModelCodeManually()
+    #executeCodeManually()
+    executeJoinModelCodeManually()
     #compareUnfilteredVSFiltered()
     #checkFeaturePercentage()
     #checkmodel()

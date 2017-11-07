@@ -24,6 +24,8 @@ strelka & all: logistic regression
 join manually (71% with nnet)
 
 
+hypotesis 1:
+
 Test: 
 apply 35% + MPLC default (muctect)
 test_f1: 0.9565 (+/- 0.0500)
@@ -32,3 +34,19 @@ train_f1: 0.9907 (+/- 0.0016)
 apply 5.2% +  MPLC default (strelka)
 test_f1: 0.7626 (+/- 0.0559)
 train_f1: 0.9976 (+/- 0.0022)
+
+hypotesis 2:
+
+apply 23% + SVM default prob=true (muctect)
+test_f1: 0.9424 (+/- 0.0350)
+train_f1: 0.9725 (+/- 0.0029)
+
+apply 9% + SVM C=2 prob=true (strelka)
+test_f1: 0.8939 (+/- 0.0485)
+train_f1: 0.9795 (+/- 0.0029)
+
+
+Joining:
+apply 7% SVM default prob=true
+test_f1: 0.9113 (+/- 0.0565)
+train_f1: 0.9812 (+/- 0.0023)
