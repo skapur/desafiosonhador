@@ -128,8 +128,8 @@ class PatientData(object):
             fulldf.append(self.__ageRisk)
         if self.__ISSs is not None:
             fulldf.append(self.__ISSs)
-        if self.__genes_scoring is not None:
-            fulldf.append(self.__genes_scoring)
+        #if self.__genes_scoring is not None:
+            #fulldf.append(self.__genes_scoring)
         if self.__genes_function_associated is not None:
             fulldf.append(self.__genes_function_associated)
         if self.__genes_tlod is not None:

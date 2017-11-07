@@ -119,9 +119,9 @@ def executeCodeOnDarwin():
 def executeCodeManually():
 
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
     #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/StrelkaIndels_dataset_CH1.pkl'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
     
     dataset = read_serialized_dataset(datasetpath)
     
@@ -146,16 +146,16 @@ def executeCodeManually():
     #variance = VarianceThreshold(threshold=(.9 * (1 - .9)))
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=23)
+    fts = SelectPercentile(percentile=9)
     y = dataset.get_flags()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     columnsToCheck = allX.columns[z]
     print(columnsToCheck)
     checkifinDataset(columnsToCheck, dataset.get_genes_scoring().columns, "Genes Scoring")
     checkifinDataset(columnsToCheck, dataset.get_genes_function_associated().columns, "Genes Function")
-    checkifinDataset(columnsToCheck, dataset.get_genes_tlod().columns, "Genes Tlod")
-    #checkifinDataset(columnsToCheck, dataset.get_genes_qss().columns, "Genes QSS")
-    #checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
+    #checkifinDataset(columnsToCheck, dataset.get_genes_tlod().columns, "Genes Tlod")
+    checkifinDataset(columnsToCheck, dataset.get_genes_qss().columns, "Genes QSS")
+    checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
     #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesBigQss")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
     trainer.doCrossValidation('svm', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
