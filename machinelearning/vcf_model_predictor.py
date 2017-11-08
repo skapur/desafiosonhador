@@ -114,8 +114,9 @@ class VCFModelPredictor(object):
         predictionscores = clf.predict_proba(x)
         scores =[]
         for i in range(0,len(predictions)):
-            classes_op = getattr(self, "classes_", None)
-            if callable(classes_op):
+            classes_op = getattr(clf, "classes_", None)
+            
+            if classes_op is not None:
                 value = list(clf.classes_).index(predictions[i])
             else:
                 value = list(clf.meta_clf_.classes_).index(predictions[i])
