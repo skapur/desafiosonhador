@@ -98,7 +98,7 @@ def preprocess_data(X_orig, y_orig, axis=0):
     if isinstance(X_orig, list):
         X = pd.concat(X_orig, axis=1).dropna(axis=axis)
     else:
-        X = X_orig.dropna(axis=axis)
+        X = X_orig.dropna(axis=axis, how='any')
     y = y_orig[X_orig.index]
     valid_samples = y != "CENSORED"
     X, y = X_orig[valid_samples], y[valid_samples] == "TRUE"

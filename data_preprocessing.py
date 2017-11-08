@@ -68,6 +68,9 @@ class MMChallengeData(object):
             None if colParseFunDict is None else colParseFunDict[(datype, level)] if (datype, level) in colParseFunDict.keys() else lambda x:x)
             for datype in DATA_PROPS.keys() for level in DATA_PROPS[datype] if "_" not in level}
 
+    def addToDataDict(self, datype, level, featureData, clinicalData, outputData):
+        self.dataDict[(datype, level)] = featureData, clinicalData, outputData
+
     def generateDataDict(self, clinicalVariables=["D_Age", "D_ISS"], outputVariable="HR_FLAG",
                          directoryFolder='/test-data/', columnNames=None, NARemove=[True, True], colParseFunDict=None):
         self.dataDict = self.getDataDict(clinicalVariables, outputVariable, directoryFolder, columnNames, NARemove, colParseFunDict)

@@ -61,6 +61,7 @@ X_marrays, y_marrays = rnaseq_prepare_data(MA_gene, None, MA_gene_output, axis =
 X_clin_ma = clin_norm.fit_transform(MA_gene_cd.loc[X_marrays.index])
 X_marrays_t, y_marrays_t, fts_vector = df_reduce(X_marrays, y_marrays, scl_ma, fts_ma, True, filename = 'transformers_microarrays.sav')
 
+
 # =============================
 #          ENSEMBLE
 # =============================
@@ -72,6 +73,11 @@ clf4 = SVC(kernel = "linear", C = 0.5, probability = True, gamma = 0.0001)
 clf5 = MLPClassifier(solver = 'adam', activation = "relu", hidden_layer_sizes = (50,25), alpha = 0.001)
 
 clf_list = [('logreg',clf1),('nb',clf3),('svm',clf4),('mlp',clf5)]
+eclf_ma = VotingClassifier(voting='soft', estimators=clf_list)
+eclf_ma.fit(X_marrays_t, y_marrays_t)
+
+with open('ma_voting_clf.sav','wb') as f:
+    pickle.dump(eclf_ma, f)
 
 # =============================
 # RNA-Seq meta-classifier

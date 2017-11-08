@@ -6,6 +6,7 @@ from data_preprocessing import MMChallengeData, MMChallengePredictor
 from genomic_data_test import df_reduce
 from sklearn.preprocessing import MaxAbsScaler
 import pandas as pd
+import numpy as np
 from copy import deepcopy
 
 def prediction_report(df):
@@ -22,18 +23,17 @@ def prediction_report(df):
     print("Median: "+str(median))
     print("True predictions: "+str(num_trues))
 
-def main(argv):
+def main():
     #DIR = "/home/skapur/synapse/syn7222203/"
     #DIR = 'D:\Dropbox\workspace_intelij\DREAM_Challenge'
     #mmcd = MMChallengeData(DIR)
     print("Starting the script!")
     print("Reading clinical data")
-    argv1 = "/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv"
-    mmcd = MMChallengeData(argv1)
-    mmcd.clinicalData
+    mmcd = MMChallengeData("/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv")
+
     print("Reading files using information from clinical data")
 
-    with open('final_colnames.sav','rb') as f:
+    with open('colnames_r3.sav','rb') as f:
         colname_dict = pickle.load(f)
 
     col_parse_dict = {
@@ -54,8 +54,7 @@ def main(argv):
     #     print("*"*80)
 
 
-    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"]+["CYTO_predicted_feature_"+str(i) for i in range(1,19)], outputVariable="D_Age", directoryFolder='/home/skapur/synapse/syn7222203/CH2/', columnNames=colname_dict, NARemove=[True,True], colParseFunDict=col_parse_dict)
-
+    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/home/skapur/synapse/syn7222203/CH2', columnNames=colname_dict, NARemove=[True, False], colParseFunDict=col_parse_dict)
 
     for key, df in mmcd.dataDict.items():
         print(key)
@@ -80,7 +79,10 @@ def main(argv):
         trf_rseq = pickle.load(f)
 
     print("Loading RS classifier")
-    with open('fittedModel_rna_seq.sav', 'rb') as f:
+    with open('rna_fitted_classifier_list.sav', 'rb') as f:
+        clf_list_rseq = pickle.load(f)
+
+    with open('rna_fitted_stack_classifier.sav', 'rb') as f:
         clf_rseq = pickle.load(f)
 
     # Redefining scaler for RNA-Seq
@@ -89,6 +91,9 @@ def main(argv):
     # rseq_new_scl.fit(rseq_data)
     # trf_rseq['scaler'] = rseq_new_scl
 
+    proba_fun_rs = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_rseq]).reshape(1, -1)
+    pred_fun_rs = lambda x: clf_rseq.predict(proba_fun_rs(x))[0]
+    conf_fun_rs = lambda x: clf_rseq.predict_proba(proba_fun_rs(x))[0][1]
 
     mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
 
@@ -96,8 +101,8 @@ def main(argv):
     # Make predictions
     mod_rseq = MMChallengePredictor(
             mmcdata = mmcd,
-            predict_fun = lambda x: clf_rseq.predict(x)[0],
-            confidence_fun = lambda x: clf_rseq.predict_proba(x)[0][1],
+            predict_fun = pred_fun_rs,
+            confidence_fun = conf_fun_rs,
             data_types = [("RNASeq", "gene")],
             single_vector_apply_fun = mv_fun_rseq,
             multiple_vector_apply_fun = lambda x: x
@@ -112,8 +117,15 @@ def main(argv):
         trf_marrays = pickle.load(f)
 
     print("Loading MA classifier")
-    with open('fittedModel_microarrays.sav', 'rb') as f:
+    with open('ma_fitted_classifier_list.sav', 'rb') as f:
+        clf_list_marrays = pickle.load(f)
+
+    with open('ma_fitted_stack_classifier.sav', 'rb') as f:
         clf_marrays = pickle.load(f)
+
+
+    with open('ma_voting_clf.sav', 'rb') as f:
+        ma_voting = pickle.load(f)
 
     # Redefining scaler for marrays
     # marrays_new_scl = MaxAbsScaler()
@@ -124,16 +136,22 @@ def main(argv):
     mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
 
     # Make predictions
+    # proba_fun_ma = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_marrays]).reshape(1, -1)
+    # pred_fun_ma = lambda x: clf_marrays.predict(proba_fun_ma(x))[0]
+    # conf_fun_ma = lambda x: clf_marrays.predict_proba(proba_fun_ma(x))[0][1]
+
     print("Predicting with MA...")
     mod_marryas = MMChallengePredictor(
                 mmcdata = mmcd,
-                predict_fun = lambda x: clf_marrays.predict(x)[0],
-                confidence_fun = lambda x: clf_marrays.predict_proba(x)[0][1],
+                predict_fun = lambda x: ma_voting.predict(x)[0],
+                confidence_fun = lambda x: ma_voting.predict_proba(x)[0][1],
                 data_types = [("MA", "gene")],
                 single_vector_apply_fun = mv_fun,
                 multiple_vector_apply_fun = lambda x: x
     )
     res_marrays = mod_marryas.predict_dataset()
+
+    mod_marryas.predict_case(mmcd.clinicalData.index[0])
 
     #Final dataset
     print("Generating prediction matrix")
@@ -144,14 +162,12 @@ def main(argv):
 
     print("Any failed prediction column in the prediction matrix?")
     print(str(final_res.isnull().sum()))
-    print("All failed prediction column in the prediction matrix?")
-    print(str(final_res.isnull().sum()))
-
-    final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0)
-    final_res["highriskflag"] = final_res["highriskflag"].fillna(value=False)
+    #
+    # final_res["predictionscore"] = final_res["predictionscore"].fillna(value=0)
+    # final_res["highriskflag"] = final_res["highriskflag"].fillna(value=False)
 
     print("Writing prediction matrix")
-    final_res.to_csv("predictions.tsv", index = False, sep = '\t')
+    final_res.to_csv("test.csv", index = False, sep = '\t')
 
 
 
@@ -159,4 +175,4 @@ def main(argv):
     print("Done!")
 
 if __name__ == "__main__":
-    main("/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv")
+    main()
