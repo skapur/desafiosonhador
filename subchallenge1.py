@@ -9,7 +9,7 @@ from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
 useindividualModels = False
 useGlobalModel = True
-useStackingModel = True
+useStackingModel = False
 
 def getReportByStudy(df):
     for study in df["study"].unique():
