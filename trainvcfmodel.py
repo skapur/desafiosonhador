@@ -341,7 +341,7 @@ def testStacking():
     inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=10)
+    fts = SelectPercentile(percentile=30)
     y = dataset.get_flags()
     trainer = VCFModelTrainer()
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
