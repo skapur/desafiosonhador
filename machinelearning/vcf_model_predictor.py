@@ -159,3 +159,12 @@ class VCFModelPredictor(object):
         outputDF.columns = ["study", "patient", "predictionscore", "highriskflag"]
         outputDF = outputDF.reset_index(drop=True)
         return outputDF
+    
+    def generate_prediction_dataframe_serial(self, patients, modelType, predictions, scores):
+        predicted = pd.DataFrame({"predictionscore":scores, "highriskflag":predictions}, index=patients.index)
+        predicted["highriskflag"] = predicted["highriskflag"].astype(str).apply(lambda x: x.upper())
+        outputDF = pd.concat([patients, predicted], axis=1)
+        outputDF = outputDF[["Patient", "predictionscore", "highriskflag"]]
+        outputDF.columns = ["patient", "predictionscore", "highriskflag"]
+        outputDF = outputDF.reset_index(drop=True)
+        return outputDF

@@ -12,6 +12,7 @@ import pandas as pd
 from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 from subchallenge1 import generateSubModelPredictions, \
     selectBestScoresFromDifferentModels, transformToRankingScore
+from trainvcfmodel import read_serialized_dataset
 
 
 def processUsingCH1Method(inputfile):
@@ -114,4 +115,25 @@ def joinAndPredictDataframes(inputfile):
     
     datainfo = pd.DataFrame(pd.concat([clinical, out1["predictionscore"], out2["predictionscore"]],axis=1), columns=['D_Age', 'D_ISS','challenge1_scores', 'challenge2_scores'])
     return datainfo
+
+def generateSerializedScoresChallenge1():
+    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets_v5/MuTectsnvs_filtered_dataset_CH1.pkl',
+             #'/home/tiagoalves/rrodrigues/vcf-datasets/StrelkaIndels_dataset_CH1.pkl',
+             '/home/tiagoalves/rrodrigues/vcf-datasets_v5/Strelkasnvs_filtered_dataset_CH1.pkl']
+    datasets = {}
+    preprocessor = VCFDataPreprocessor(None)
+    for pat in paths:
+        dataset = read_serialized_dataset(pat)
+        datasets[dataset.get_dataset_origin()] = dataset
+    predictor = VCFModelPredictor()
+    data = preprocessor.prepareDatasetForStacking(datasets)
+    allXDataset = data.getFullDataframe(False, False)
+    predictionsAllXDataset, scoresAllXDataset = predictor.generate_predictions_scores(allXDataset, data.get_dataset_origin())
+    predictedALLDF = predictor.generate_prediction_dataframe_serial(data.get_patients(), data.get_dataset_origin(), predictionsAllXDataset, scoresAllXDataset)
+    predictedALLDF.set_index("patient", drop=False, append=False, inplace=True)
+    predictedALLDF.to_csv("/home/tiagoalves/rrodrigues/desafiosonhador/predictions_ch1.csv")
+
+if __name__ == '__main__':
+    generateSerializedScoresChallenge1()
+        
     

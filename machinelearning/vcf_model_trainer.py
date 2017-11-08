@@ -52,11 +52,7 @@ class VCFModelTrainer(object):
                 classifiers= [muctect_pipe, strelka_pipe],
                           use_probas=True,
                           average_probas=False,
-                          meta_classifier=
-                          VotingClassifier(estimators=[('svm', SVC(probability = True)), 
-                                                       ('nnet', MLPClassifier()), 
-                                                       ('logisticRegression', LogisticRegression())], 
-                                           voting='soft'))
+                          meta_classifier=LogisticRegression())
             
     #solver = 'newton-cg', C = 0.1, penalty = "l2", tol = 0.001, multi_class = 'multinomial'
     def df_reduce(self, X, y, inputer = None, variance = None, scaler = None, fts = None, filename = None):

@@ -63,8 +63,9 @@ def generateSubModelPredictions(preprocessor, predictor, datasets):
         predictedDFs.append(predictedALLDF)
         print("Finished global dataset prediction...")
         print("="*40)
+        
     if useStackingModel:
-        print("Start using global dataset to predict...")
+        print("Start using stacking dataset to predict...")
         print("="*40)
         data = preprocessor.prepareDatasetForStacking(datasets)
         allXDataset = data.getFullDataframe(False, False)
@@ -72,7 +73,7 @@ def generateSubModelPredictions(preprocessor, predictor, datasets):
         predictedALLDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), data.get_dataset_origin(), predictionsAllXDataset, scoresAllXDataset)
         predictedALLDF.set_index("patient", drop=False, append=False, inplace=True)
         predictedDFs.append(predictedALLDF)
-        print("Finished global dataset prediction...")
+        print("Finished stacking dataset prediction...")
         print("="*40)
     return predictedDFs
     
