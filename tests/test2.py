@@ -91,6 +91,11 @@ def qsiTest():
     reader = VCFReader()
     genes = reader.getGenesWithUpperQSI("/home/tiagoalves/rrodrigues/resources/synapse/MMRF_1037_1_BM_CD138pos_T2_TSE61_K02458.MarkDuplicates.mdup.seqvar.all.somatic.snvs.ANNOTATED.vcf.gz")
     print(genes)
+    
+def clusteredTest():
+    reader = VCFReader()
+    genes = reader.readVCFFile("/home/tiagoalves/rrodrigues/resources/synapse/MMRF_1037_1_BM_CD138pos_T2_TSE61_K02458.MarkDuplicates.mdup...ANNOTATED.vcf.gz")
+    print(genes[7])
 
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.join(os.path.dirname(__file__), '../..'))
@@ -98,4 +103,4 @@ if __name__ == '__main__':
     #getAllFunctions()
     #getGenesAndFunctions()
     #tLODTest()
-    qsiTest()
+    clusteredTest()

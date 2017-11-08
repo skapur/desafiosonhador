@@ -1,6 +1,8 @@
+import pickle
+
 from datastructures.patientdata import PatientData
 import os.path as path
-import pickle
+
 
 serialized_Features_folder = 'serialized_features'
 
@@ -47,11 +49,24 @@ class VCFFeaturesSelector(object):
         
         big_qss = self.__generateFilteredGenesBigQSSFeaturesDF(self.__data)
         if big_qss is not None:
-            filteredData.set_genes_big_qss(big_qss)    
-  
+            filteredData.set_genes_big_qss(big_qss)
+        
+        clustered = self.__generateFilteredGenesClusteredFeaturesDF(self.__data)
+        if clustered is not None:
+            filteredData.set_genes_clustered(clustered)   
+                    
+        germline = self.__generateFilteredGenesGermlineRiskQSSFeaturesDF(self.__data)
+        if germline is not None:
+            filteredData.set_genes_germline_risk(germline)   
+                    
+        somatic = self.__generateFilteredGenesSomaticRiskQSSFeaturesDF(self.__data)
+        if somatic is not None:
+            filteredData.set_genes_somatic_risk(somatic)   
+               
         cyto = self.__generateFilteredCytogeneticFeaturesDF(self.__data)
         if cyto is not None:
             filteredData.set_cytogenetic_features(cyto)
+            
         return filteredData
     
     def __loadSerializedFeatures(self, featureGroupName):
@@ -129,6 +144,33 @@ class VCFFeaturesSelector(object):
         if dataframe is not None:
             features = self.__loadSerializedFeatures('genesBigQss')
             self.__get_Column_Counts(features, dataframe, 'genesBigQss', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
+    
+    def __generateFilteredGenesClusteredFeaturesDF(self, data):
+        dataframe = data.get_genes_clustered()
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesClustered')
+            self.__get_Column_Counts(features, dataframe, 'genesClustered', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
+    
+    def __generateFilteredGenesGermlineRiskQSSFeaturesDF(self, data):
+        dataframe = data.get_genes_germline_risk()
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesGermlineRisk')
+            self.__get_Column_Counts(features, dataframe, 'genesGermlineRisk', data.get_dataset_origin())
+            filteredDataframe = dataframe.loc[:, features]
+            return filteredDataframe
+        return None
+    
+    def __generateFilteredGenesSomaticRiskQSSFeaturesDF(self, data):
+        dataframe = data.get_genes_somatic_risk()
+        if dataframe is not None:
+            features = self.__loadSerializedFeatures('genesSomaticRisk')
+            self.__get_Column_Counts(features, dataframe, 'genesSomaticRisk', data.get_dataset_origin())
             filteredDataframe = dataframe.loc[:, features]
             return filteredDataframe
         return None

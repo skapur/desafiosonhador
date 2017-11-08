@@ -1,5 +1,8 @@
+import pickle
+
 from sklearn.ensemble.bagging import BaggingClassifier
 from sklearn.ensemble.forest import RandomForestClassifier
+from sklearn.ensemble.voting_classifier import VotingClassifier
 from sklearn.linear_model.logistic import LogisticRegression
 from sklearn.model_selection._validation import cross_validate
 from sklearn.naive_bayes import GaussianNB
@@ -8,8 +11,9 @@ from sklearn.neural_network.multilayer_perceptron import MLPClassifier
 from sklearn.svm.classes import SVC
 from sklearn.tree.tree import DecisionTreeClassifier
 
+from mlxtend.classifier import StackingClassifier
 import numpy as np
-import pickle
+
 
 class VCFModelTrainer(object):
     
@@ -22,7 +26,13 @@ class VCFModelTrainer(object):
             "svm" : SVC(probability = True),
             'nnet' : MLPClassifier(),
             'rand_forest' : RandomForestClassifier(max_depth = 5, criterion = "entropy", n_estimators = 100),
-            'bagging': BaggingClassifier(max_samples = 1, bootstrap = True)
+            'bagging': BaggingClassifier(max_samples = 1, bootstrap = True),
+            'voting' : VotingClassifier(estimators=[('svm', SVC(probability = True)), ('nnet', MLPClassifier()), ('logisticRegression', LogisticRegression(C = 0.001))], voting='soft'),
+            'stacking' : StackingClassifier(classifiers=[SVC(probability = True), MLPClassifier(), LogisticRegression(C = 0.001)],
+                          use_probas=True,
+                          average_probas=False,
+                          meta_classifier=VotingClassifier(estimators=[('svm', SVC(probability = True)), ('nnet', MLPClassifier()), ('logisticRegression', LogisticRegression(C = 0.001))], voting='soft'))
+            
             }
     #solver = 'newton-cg', C = 0.1, penalty = "l2", tol = 0.001, multi_class = 'multinomial'
     def df_reduce(self, X, y, inputer = None, variance = None, scaler = None, fts = None, filename = None):

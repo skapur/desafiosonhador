@@ -50,3 +50,19 @@ Joining:
 apply 7% SVM default prob=true
 test_f1: 0.9113 (+/- 0.0565)
 train_f1: 0.9812 (+/- 0.0023)
+
+
+hypotesis 3:
+
+apply 22% + voting (muctect)
+test_f1: 0.9510 (+/- 0.0342)
+train_f1: 0.9890 (+/- 0.0026)
+
+apply 9% + voting (strelkla)
+test_f1: 0.9032 (+/- 0.0336)
+train_f1: 0.9862 (+/- 0.0027)
+
+joining:
+apply 7% + voting
+test_f1: 0.9224 (+/- 0.0429)
+train_f1: 0.9917 (+/- 0.0023)

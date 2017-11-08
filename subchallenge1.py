@@ -7,8 +7,8 @@ import pandas as pd
 from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
-
-joinALLDatasets = True
+useindividualModels = False
+useGlobalModel = True
 
 def getReportByStudy(df):
     for study in df["study"].unique():
@@ -34,30 +34,34 @@ def prediction_report(df):
 
 def generateSubModelPredictions(preprocessor, predictor, datasets):
     predictedDFs = []
-    print("="*40)
-    print("Start using individual datasets to predict...")
-    print("="*40)
-    for modelType in datasets.keys():
-        selector = VCFFeaturesSelector(datasets[modelType])
-        dataset = selector.generateFilteredData()
-        X = dataset.getFullDataframe(False, False)
-        predictions, scores = predictor.generate_predictions_scores(X, modelType)
-        predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), modelType, predictions, scores)
-        predictedDF.set_index("patient", drop=False, append=False, inplace=True)
-        predictedDFs.append(predictedDF)
     
-    print("Finished individual datasets prediction...")
-    print("="*40)
-    print("Start using global dataset to predict...")
-    print("="*40)
-    data = preprocessor.joinDatasetsToSingleDataset(datasets)
-    allXDataset = data.getFullDataframe(False, False)
-    predictionsAllXDataset, scoresAllXDataset = predictor.generate_predictions_scores(allXDataset, data.get_dataset_origin())
-    predictedALLDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), data.get_dataset_origin(), predictionsAllXDataset, scoresAllXDataset)
-    predictedALLDF.set_index("patient", drop=False, append=False, inplace=True)
-    predictedDFs.append(predictedALLDF)
-    print("Finished global dataset prediction...")
-    print("="*40)
+    if useindividualModels:
+        print("="*40)
+        print("Start using individual datasets to predict...")
+        print("="*40)
+        for modelType in datasets.keys():
+            selector = VCFFeaturesSelector(datasets[modelType])
+            dataset = selector.generateFilteredData()
+            X = dataset.getFullDataframe(False, False)
+            predictions, scores = predictor.generate_predictions_scores(X, modelType)
+            predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), modelType, predictions, scores)
+            predictedDF.set_index("patient", drop=False, append=False, inplace=True)
+            predictedDFs.append(predictedDF)
+    
+        print("Finished individual datasets prediction...")
+        print("="*40)
+    
+    if useGlobalModel:
+        print("Start using global dataset to predict...")
+        print("="*40)
+        data = preprocessor.joinDatasetsToSingleDataset(datasets)
+        allXDataset = data.getFullDataframe(False, False)
+        predictionsAllXDataset, scoresAllXDataset = predictor.generate_predictions_scores(allXDataset, data.get_dataset_origin())
+        predictedALLDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), data.get_dataset_origin(), predictionsAllXDataset, scoresAllXDataset)
+        predictedALLDF.set_index("patient", drop=False, append=False, inplace=True)
+        predictedDFs.append(predictedALLDF)
+        print("Finished global dataset prediction...")
+        print("="*40)
     return predictedDFs
     
 def selectBestScoresFromDifferentModels(predictedDFs):

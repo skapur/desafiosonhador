@@ -62,12 +62,19 @@ class VCFDataPreprocessor(object):
                 vcfgenestloddict = {}
                 vcfgenesqssdict = {}
                 vcfgenesbigqssdict = {}
+                vcfgenesclustereddict = {}
+                vcfgenesgermlineriskdict = {}
+                vcfgenessomaticriskdict = {}
                 for k, v in zip(filenames, self.__executor.map(reader.readVCFFileFindCompression, paths)):
                     vcfgenescoredict[k] = v[0]
                     vcfgenesfunctiondict[k] = v[1]
                     vcfgenestloddict[k] = v[2]
                     vcfgenesqssdict[k] = v[3]
                     vcfgenesbigqssdict[k] = v[4]
+                    vcfgenesclustereddict[k] = v[5]
+                    vcfgenesgermlineriskdict[k] = v[6]
+                    vcfgenessomaticriskdict[k] = v[7]
+                    
                 
                 vcfGenesScoreDF = self.__tranfromVCFDictToVCFDataframe(vcfgenescoredict, datasetDataframe, GENOMIC_PROPS[dataset])
                 vcfGenesScoreDF[vcfGenesScoreDF < 500] = np.nan
@@ -96,6 +103,21 @@ class VCFDataPreprocessor(object):
                     data.set_genes_big_qss(vcfGenesBigQSSDF)    
                 
                 data.set_cytogenetic_features(datasetDataframe[CYTOGENETICS_PROPS])
+
+                vcfGenesclusteredDF = self.__tranfromVCFDictToVCFDataframe(vcfgenesclustereddict, datasetDataframe, GENOMIC_PROPS[dataset])
+                vcfGenesclusteredDF = vcfGenesclusteredDF.fillna(value=0)
+                if not vcfGenesclusteredDF.empty:
+                    data.set_genes_clustered(vcfGenesclusteredDF)
+                    
+                vcfGenesGermlineRiskDF = self.__tranfromVCFDictToVCFDataframe(vcfgenesgermlineriskdict, datasetDataframe, GENOMIC_PROPS[dataset])
+                vcfGenesGermlineRiskDF = vcfGenesGermlineRiskDF.fillna(value=0)
+                if not vcfGenesGermlineRiskDF.empty:
+                    data.set_genes_germline_risk(vcfGenesGermlineRiskDF)
+                    
+                vcfGenesSomaticRiskDF = self.__tranfromVCFDictToVCFDataframe(vcfgenessomaticriskdict, datasetDataframe, GENOMIC_PROPS[dataset])
+                vcfGenesSomaticRiskDF = vcfGenesSomaticRiskDF.fillna(value=0)
+                if not vcfGenesSomaticRiskDF.empty:
+                    data.set_genes_somatic_risk(vcfGenesSomaticRiskDF)
                 
                 if not vcfGenesScoreDF.empty:
                     result[dataset_origin] = data
@@ -125,6 +147,9 @@ class VCFDataPreprocessor(object):
         tlod = None
         qss = None
         big_qss = None
+        clustered = None
+        germline = None
+        somaticrisk = None
         flags = None
         containsFiltered = False
         for dataset in datasets.values():
@@ -134,42 +159,67 @@ class VCFDataPreprocessor(object):
                 patients = dataset.get_patients()
             else:
                 patients = pd.concat([patients, dataset.get_patients()])
+                
             if ages is None:
                 ages = dataset.get_ages()
             else:
                 ages = pd.concat([ages, dataset.get_ages()])
+                
             if ageRisk is None:
                 ageRisk = dataset.get_ageRisk()
             else:
                 ageRisk = pd.concat([ageRisk, dataset.get_ageRisk()])
+                
             if iSSs is None:
                 iSSs = dataset.get_ISSs()
             else:
                 iSSs = pd.concat([iSSs, dataset.get_ISSs()])
+                
             if genes_scoring is None:
                 genes_scoring = dataset.get_genes_scoring()
             else:
                 genes_scoring = pd.concat([genes_scoring, dataset.get_genes_scoring()], axis=1)
+                
             if genes_function_associated is None:
                 genes_function_associated = dataset.get_genes_function_associated()
             else:
                 genes_function_associated = pd.concat([genes_function_associated, dataset.get_genes_function_associated()], axis=1)
+                
             if tlod is None:
                 tlod = dataset.get_genes_tlod()
             elif dataset.get_genes_tlod() is not None:
                 tlod = pd.concat([tlod, dataset.get_genes_tlod()], axis=1)
+                
             if qss is None:
                 qss = dataset.get_genes_qss()
             elif dataset.get_genes_qss() is not None:
                 qss = pd.concat([qss, dataset.get_genes_qss()], axis=1)
+                
             if big_qss is None:
                 big_qss = dataset.get_genes_big_qss()
             elif  dataset.get_genes_big_qss() is not None:
                 big_qss = pd.concat([big_qss, dataset.get_genes_big_qss()], axis=1)
+                
             if cytogenetic_features is None:
                 cytogenetic_features = dataset.get_cytogenetic_features()
             else:
                 cytogenetic_features = pd.concat([cytogenetic_features, dataset.get_cytogenetic_features()])
+                
+            if clustered is None:
+                clustered = dataset.get_genes_clustered()
+            elif dataset.get_genes_clustered() is not None:
+                clustered = pd.concat([clustered, dataset.get_genes_clustered()], axis=1)
+            
+            if germline is None:
+                germline = dataset.get_genes_germline_risk()
+            elif dataset.get_genes_germline_risk() is not None:
+                germline = pd.concat([germline, dataset.get_genes_germline_risk()], axis=1)
+            
+            if somaticrisk is None:
+                somaticrisk = dataset.get_genes_somatic_risk()
+            elif dataset.get_genes_somatic_risk() is not None:
+                somaticrisk = pd.concat([somaticrisk, dataset.get_genes_somatic_risk()], axis=1)    
+            
             if flags is None:
                 flags = dataset.get_flags()
             else:
@@ -198,6 +248,12 @@ class VCFDataPreprocessor(object):
                 data.set_genes_qss(self.__processBinaryGroupedDataFrame(qss))
             if big_qss is not None:
                 data.set_genes_big_qss(self.__processBinaryGroupedDataFrame(big_qss))
+            if clustered is not None:
+                data.set_genes_clustered(self.__processBinaryGroupedDataFrame(clustered))
+            if germline is not None:   
+                data.set_genes_germline_risk(self.__processBinaryGroupedDataFrame(germline))
+            if somaticrisk is not None:
+                data.set_genes_somatic_risk(self.__processBinaryGroupedDataFrame(somaticrisk))
             if cytogenetic_features is not None:
                 data.set_cytogenetic_features(self.__processFirstOfGroupedDataFrame(cytogenetic_features))
             if flags is not None:

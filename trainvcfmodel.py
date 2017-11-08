@@ -112,16 +112,16 @@ def read_serialized_dataset(datasetpath):
 def executeCodeOnDarwin():
     clinicalfile = '/home/dreamchallenge/synapse/syn7222203/Clinical Data/globalClinTraining.csv'
     dataFolder = '/home/dreamchallenge/link-data/'
-    datasetsFolder = '/home/dreamchallenge/vcf-datasets_v3'
+    datasetsFolder = '/home/dreamchallenge/vcf-datasets_v4'
     #train_serialize_models(clinicalfile, dataFolder, modelsFolder, doCV=False, saveFiles=False, fts_percentile=2, joinAllDatasets=False, savedataset=True)
     generate_datasets_forTraining(clinicalfile, dataFolder, datasetsFolder)
     
 def executeCodeManually():
 
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl'
-    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/StrelkaIndels_dataset_CH1.pkl'
-    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v5/MuTectsnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v5/StrelkaIndels_dataset_CH1.pkl'
+    datasetpath='/home/tiagoalves/rrodrigues/vcf-datasets_v5/Strelkasnvs_filtered_dataset_CH1.pkl'
     
     dataset = read_serialized_dataset(datasetpath)
     
@@ -137,6 +137,9 @@ def executeCodeManually():
     #allX = dataset.get_genes_tlod()
     #allX = dataset.get_genes_qss()
     #allX = dataset.get_genes_big_qss()
+    #allX = dataset.get_genes_clustered()
+    #allX = dataset.get_genes_germline_risk()
+    #allX = dataset.get_genes_somatic_risk()
     #allX = dataset.getFullDataframe(False,False)
     
     serializeFeatures(modelsFolder, dataset, allX)
@@ -154,19 +157,23 @@ def executeCodeManually():
     checkifinDataset(columnsToCheck, dataset.get_genes_scoring().columns, "Genes Scoring")
     checkifinDataset(columnsToCheck, dataset.get_genes_function_associated().columns, "Genes Function")
     #checkifinDataset(columnsToCheck, dataset.get_genes_tlod().columns, "Genes Tlod")
+    #checkifinDataset(columnsToCheck, dataset.get_genes_clustered().columns, "Genes Clustered")
+    checkifinDataset(columnsToCheck, dataset.get_genes_germline_risk().columns, "Genes Germline")
+    checkifinDataset(columnsToCheck, dataset.get_genes_somatic_risk().columns, "Genes Somatic")
+    #compareNames(columnsToCheck, columnsToCheck)
     checkifinDataset(columnsToCheck, dataset.get_genes_qss().columns, "Genes QSS")
     checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
-    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesBigQss")
+    #serializeSelectedFeatures(modelsFolder, dataset, allX.columns[z], "genesGermlineRisk")
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('svm', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('svm', X, y)
+    trainer.doCrossValidation('voting', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('voting', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
     
 def executeJoinModelCodeManually():
     modelsFolder = '/home/tiagoalves/rrodrigues/'
-    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets_v4/MuTectsnvs_filtered_dataset_CH1.pkl',
+    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets_v5/MuTectsnvs_filtered_dataset_CH1.pkl',
              #'/home/tiagoalves/rrodrigues/vcf-datasets/StrelkaIndels_dataset_CH1.pkl',
-             '/home/tiagoalves/rrodrigues/vcf-datasets_v4/Strelkasnvs_filtered_dataset_CH1.pkl']
+             '/home/tiagoalves/rrodrigues/vcf-datasets_v5/Strelkasnvs_filtered_dataset_CH1.pkl']
     
     datasets = {}
     preprocessor = VCFDataPreprocessor(None)
@@ -193,18 +200,25 @@ def executeJoinModelCodeManually():
     checkifinDataset(columnsToCheck, dataset.get_genes_tlod().columns, "Genes Tlod")
     checkifinDataset(columnsToCheck, dataset.get_genes_qss().columns, "Genes QSS")
     checkifinDataset(columnsToCheck, dataset.get_genes_big_qss().columns, "Genes Big Qss")
-    compareNames(dataset.get_genes_scoring().columns, dataset.get_genes_big_qss().columns)
+    checkifinDataset(columnsToCheck, dataset.get_genes_clustered().columns, "Genes Clustered")
+    checkifinDataset(columnsToCheck, dataset.get_genes_germline_risk().columns, "Genes Germline")
+    checkifinDataset(columnsToCheck, dataset.get_genes_somatic_risk().columns, "Genes Somatic")
+    #compareNames(dataset.get_genes_scoring().columns, dataset.get_genes_big_qss().columns)
     #trainer.testAllMethodsCrossValidation(X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    trainer.doCrossValidation('svm', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('svm', X, y)
+    trainer.doCrossValidation('voting', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('voting', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
 
 def compareNames(columns1, columns2):
+    columns1 = [x for x in columns1 if "TLOD_" in x]
+    columns1 = [x.replace("TLOD_", "") for x in columns1]
     #columns1 = [x.replace("QSS_", "") for x in columns1]
     columns1 = set(columns1)
     #columns2 = [x.replace("TLOD_","") for x in columns2]
     #columns2 = [x.replace("QSS_", "") for x in columns2]
-    columns2 = [x.replace("BIGQSS_", "") for x in columns2]
+    #columns2 = [x.replace("BIGQSS_", "") for x in columns2]
+    columns2 = [x for x in columns2 if "Clustered_" in x]
+    columns2 = [x.replace("Clustered_", "") for x in columns2]
     columns2 = set(columns2)
     inter = columns1 & columns2
     print("names")
