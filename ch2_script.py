@@ -1,18 +1,18 @@
-#!/usr/bin/python
-
 import pickle
-import sys, getopt
-from data_preprocessing import MMChallengeData, MMChallengePredictor
-from genomic_data_test import df_reduce
-from sklearn.preprocessing import MaxAbsScaler
-import pandas as pd
+import sys
 import numpy as np
-from copy import deepcopy
+import pandas as pd
 
-def prediction_report(df):
+from data_preprocessing import MMChallengeData, MMChallengePredictor
+from sklearn.preprocessing import Imputer
+
+
+def prediction_report(df, confidence=False):
     # min, max, IQR, median, mean, Trues
-    scores = df["predictionscore"]
-    flags = df["highriskflag"]
+    scores = df["predictionscore"].copy()
+    flags = df["highriskflag"].copy()
+    if confidence:
+        scores = (scores - 0.5).abs() + 0.5
     maxp, minp = scores.max(), scores.min()
     q1, q3 = scores.quantile([.25, .75])
     mean, median = scores.mean(), scores.median()
@@ -23,116 +23,139 @@ def prediction_report(df):
     print("Median: "+str(median))
     print("True predictions: "+str(num_trues))
 
+def save_as_pickle(obj, path):
+    with open(path, 'wb') as f:
+        pickle.dump(obj, f)
+
+def read_pickle(path):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
+
+def data_dict_report(data_dict, colname_dict):
+    for key, df in data_dict.items():
+        try:
+            print(key)
+            training_features = set(colname_dict[key])
+            validation_features = set(df[0].columns.tolist())
+            overlapped_features = training_features & validation_features
+
+            print(str(len(overlapped_features)) + " " + "overlapped features.")
+            print("Dataframe has " + str(len(df[0].columns.tolist())))
+            print("Dataframe columns: " + str(df[0].shape[1]))
+            print("Full NA columns: " + str(df[0].isnull().all().sum() > 0))
+            print("Partial NA columns: " + str(df[0].isnull().any().sum() > 0))
+            print("*" * 80)
+        except:
+            pass
+
+def binarize_rows_by_quantile(df, q):
+    return (df.T > df.quantile(q, axis=1)).T
+
+def generate_binary_features(x, qs):
+    return pd.concat([binarize_rows_by_quantile(x, q) for q in qs], axis=1).astype(int)
+
+def minmax(x):
+    return (x-min(x))/(max(x)-min(x))
+
+
 def main(argv):
-    #DIR = "/home/skapur/synapse/syn7222203/"
-    #DIR = 'D:\Dropbox\workspace_intelij\DREAM_Challenge'
-    #mmcd = MMChallengeData(DIR)
     print("Starting the script!")
+    # clin_file_path = '/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv'
+    # data_file_path = '/home/skapur/synapse/syn7222203/CH2'
+    clin_file_path = sys.argv[1]
+    data_file_path = '/test-data/'
+
     print("Reading clinical data")
-    mmcd = MMChallengeData(sys.argv[1])
+    mmcd = MMChallengeData(clin_file_path)
 
-    print("Reading files using information from clinical data")
+    print('Reading feature list')
+   # colname_dict = read_pickle('/desafiosonhador/colnames_r3.sav')
+    colname_dict = {
+        ('RNASeq','gene'): read_pickle('/desafiosonhador/RNASeq_genes_08112017'),
+        ('MA','gene'): read_pickle('/desafiosonhador/MA_genes_08112017'),
+        ('MA','probe'):[],
+        ('RNASeq','trans'):[]
+    }
 
-    with open('/desafiosonhador/colnames_r3.sav','rb') as f:
-        colname_dict = pickle.load(f)
-
+    print('Defining clinical variables')
     col_parse_dict = {
         ('RNASeq', 'trans'): lambda x: x.split('.')[0]
     }
+    clinical_variables = ["D_Age", "D_ISS"]
+    output_variable = "D_Age" # Placeholder as it's not being used
+    mmcd.clinicalData[['D_Age','D_ISS']]
+    print('Generating data dictionary')
+    mmcd.generateDataDict(clinicalVariables=clinical_variables,
+                          outputVariable=output_variable,
+                          directoryFolder=data_file_path,
+                          columnNames=colname_dict,
+                          NARemove=[False, True],
+                          colParseFunDict=col_parse_dict
+    )
+    # x - dataframe; qs - quantile list
+    # Generate new RNA_Seq features
 
-    # mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=None, NARemove=[True,True], colParseFunDict=col_parse_dict)
-    #
-    # for key, df in mmcd.dataDict.items():
-    #     print(key)
-    #     print("First 100 features - Validation: "+str(df[0].columns.tolist()[:100]))
-    #     overlap = set(colname_dict[key]) & set(df[0].columns.tolist())
-    #     print("Overlapped genes:")
-    #     print(overlap)
-    #     print("Dataframe columns: "+str(df[0].shape[1]))
-    #     print("Amount of full NA columns: "+str(df[0].isnull().all().sum()))
-    #     print("Amount of partial NA columns: " + str(df[0].isnull().any().sum()))
-    #     print("*"*80)
+    print('Processing RNA-Seq data...')
+    RNA_quantile_steps = np.linspace(0.1, 0.9, 5)
+    RNA_X, RNA_C, RNA_y = mmcd.dataDict[('RNASeq','gene')]
+    RNA_C = RNA_C.T.drop_duplicates().T
+    RNA_Xb = generate_binary_features(RNA_X, RNA_quantile_steps)
+    print('Engineering RNA-Seq features')
 
+    #print('Adding RNA-Seq features to data_dict')
+    #mmcd.addToDataDict(('RNASeq','binary_gene'), RNA_Xb, RNA_C, RNA_y)
 
-    mmcd.generateDataDict(clinicalVariables=["D_Age", "D_ISS"], outputVariable="D_Age", directoryFolder='/test-data/', columnNames=colname_dict, NARemove=[True, False], colParseFunDict=col_parse_dict)
-
-    for key, df in mmcd.dataDict.items():
-        print(key)
-        #print("First 100 features - Validation: "+str(df[0].columns.tolist
-
-        training_features = set(colname_dict[key])
-        validation_features = set(df[0].columns.tolist())
-        overlapped_features = training_features & validation_features
-
-        print(str(len(overlapped_features))+" "+"overlapped features.")
-        print("Dataframe has "+str(len(df[0].columns.tolist())))
-        print("Dataframe columns: "+str(df[0].shape[1]))
-        print("Full NA columns: "+str(df[0].isnull().all().sum() > 0))
-        print("Partial NA columns: " + str(df[0].isnull().any().sum() > 0))
-        print("*"*80)
-
-    # ======== RNA-SEQ ========
-
-    print("Loading RS transformer")
-    #Load fitted transformers and model
-    with open('/desafiosonhador/transformers_rna_seq.sav', 'rb') as f:
-        trf_rseq = pickle.load(f)
-
-    print("Loading RS classifier")
-    with open('/desafiosonhador/rna_fitted_classifier_list.sav', 'rb') as f:
-        clf_list_rseq = pickle.load(f)
-
-    with open('/desafiosonhador/rna_fitted_stack_classifier.sav', 'rb') as f:
-        clf_rseq = pickle.load(f)
-
-    # Redefining scaler for RNA-Seq
-    # rseq_new_scl = MaxAbsScaler()
-    # rseq_data = mmcd.dataDict[("RNASeq", "gene")][0]
-    # rseq_new_scl.fit(rseq_data)
-    # trf_rseq['scaler'] = rseq_new_scl
+    data_dict_report(mmcd.dataDict, colname_dict)
 
 
-    proba_fun_rs = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_rseq]).reshape(1, -1)
-    pred_fun_rs = lambda x: clf_rseq.predict(proba_fun_rs(x))[0]
-    conf_fun_rs = lambda x: clf_rseq.predict_proba(proba_fun_rs(x))[0][1]
+    ########################
+    ##
+    # RNA-SEQ CLASSIFIERS
+    ##
+    ########################
+    # RNA_transformer = read_pickle('desafiosonhador/rnaseq_stack_pipeline_08112017')
+    # RNA_classifier = read_pickle('desafiosonhador/rnaseq_stack_classifier_08112017')
+    print('Reading serialized RNA-Seq data classifiers/transformers')
+    RNA_transformer = read_pickle('/desafiosonhador/rnaseq_stack_pipeline_08112017')
+    RNA_classifier = read_pickle('/desafiosonhador/rnaseq_stack_classifier_08112017')
 
-    mv_fun_rseq = lambda x: df_reduce(x.values.reshape(1,-1), [], fit = False, scaler = trf_rseq['scaler'], fts = trf_rseq['fts'])[0]
+    print('Transforming RNA-Seq data')
+    RNA_imputer = Imputer(strategy='median', axis=0)
 
-    print("Predicting with RS...")
-    # Make predictions
-    mod_rseq = MMChallengePredictor(
+    RNA_Xbd_imp = RNA_imputer.fit_transform(RNA_Xb)
+    RNA_Xbd_sel = RNA_transformer.transform(RNA_Xbd_imp)
+
+    RNA_C = RNA_C.apply(minmax)
+    RNA_C['D_AgeISSMean'] = RNA_C.mean(axis=1)
+    RNA_C_imp = pd.DataFrame(RNA_imputer.fit_transform(RNA_C), index=RNA_C.index)
+    RNA_x_final = pd.DataFrame(np.concatenate([RNA_Xbd_sel, RNA_C_imp], axis=1), index=RNA_X.index)
+
+    print('Adding transformed RNA-Seq data to data dictionary')
+    mmcd.addToDataDict('RNASeq','binary_feature_selected', RNA_x_final, RNA_C_imp, RNA_y)
+
+    RNA_predictor = MMChallengePredictor(
             mmcdata = mmcd,
-            predict_fun = pred_fun_rs,
-            confidence_fun = conf_fun_rs,
-            data_types = [("RNASeq", "gene")],
-            single_vector_apply_fun = mv_fun_rseq,
+            predict_fun = lambda x: RNA_classifier.predict(x)[0],
+            confidence_fun = lambda x: RNA_classifier.predict_proba(x)[0][1],
+            data_types = [("RNASeq", "binary_feature_selected")],
+            single_vector_apply_fun = lambda x: x.values.reshape(1,-1),
             multiple_vector_apply_fun = lambda x: x
     )
-    res_rseq = mod_rseq.predict_dataset()
 
-    # ======== MICROARRAYS ========
-    print("Loading MA transformer")
-    #Load fitted transformers and model
-    with open('/desafiosonhador/transformers_microarrays.sav', 'rb') as f:
-        trf_marrays = pickle.load(f)
+    RNA_prediction_df = RNA_predictor.predict_dataset()
+    #RNA_prediction_df.to_csv('RNA_prediction_df.test.csv')
 
-    # print("Loading MA classifier")
-    # with open('/desafiosonhador/ma_fitted_classifier_list.sav', 'rb') as f:
-    #     clf_list_marrays = pickle.load(f)
-    #
-    # with open('/desafiosonhador/ma_fitted_stack_classifier.sav', 'rb') as f:
-    #     clf_marrays = pickle.load(f)
+    ########################
+    ##
+    # MICROARRAY CLASSIFIERS
+    ##
+    ########################
 
-    with open('/desafiosonhador/ma_voting_clf.sav', 'rb') as f:
-        ma_voting = pickle.load(f)
+    MA_transformer = read_pickle('/desafiosonhador/transformers_microarrays.sav')
+    MA_classifier = read_pickle('/desafiosonhador/ma_voting_clf.sav')
+    from genomic_data_test import df_reduce
 
-    # Redefining scaler for marrays
-    # marrays_new_scl = MaxAbsScaler()
-    # marrays_data = mmcd.dataDict[("MA", "gene")][0]
-    # marrays_new_scl.fit(marrays_data)
-    # trf_marrays['scaler'] = marrays_new_scl
-
-    mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = trf_marrays['scaler'], fts = trf_marrays['fts'], fit = False)[0]
+    mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = MA_transformer['scaler'], fts = MA_transformer['fts'], fit = False)[0]
 
     # Make predictions
     # proba_fun_ma = lambda x: np.array([clf.predict_proba(x)[0][1] for name, clf in clf_list_marrays]).reshape(1, -1)
@@ -140,19 +163,18 @@ def main(argv):
     # conf_fun_ma = lambda x: clf_marrays.predict_proba(proba_fun_ma(x))[0][1]
 
     print("Predicting with MA...")
-    mod_marryas = MMChallengePredictor(
+    MA_predictor = MMChallengePredictor(
                 mmcdata = mmcd,
-                predict_fun = lambda x: ma_voting.predict(x)[0],
-                confidence_fun = lambda x: ma_voting.predict_proba(x)[0][1],
+                predict_fun = lambda x: MA_classifier.predict(x)[0],
+                confidence_fun = lambda x: MA_classifier.predict_proba(x)[0][1],
                 data_types = [("MA", "gene")],
                 single_vector_apply_fun = mv_fun,
                 multiple_vector_apply_fun = lambda x: x
     )
-    res_marrays = mod_marryas.predict_dataset()
+    MA_prediction_df = MA_predictor.predict_dataset()
 
-    #Final dataset
     print("Generating prediction matrix")
-    final_res = res_rseq.combine_first(res_marrays)
+    final_res = MA_prediction_df.combine_first(RNA_prediction_df)
     final_res.columns = ['study', 'patient', 'predictionscore', 'highriskflag']
     final_res['highriskflag'] = final_res['highriskflag'] == 1
     final_res['highriskflag'] = final_res['highriskflag'].apply(lambda x: str(x).upper())
@@ -165,11 +187,24 @@ def main(argv):
 
     print("Writing prediction matrix")
     final_res.to_csv(sys.argv[2], index = False, sep = '\t')
+    print('*'*80)
 
+    def print_confidence(df):
+        print(df['study'].unique())
+        print(df.shape)
+        prediction_report(df, True)
+        print('*' * 80)
 
+    final_res.groupby('study').apply(print_confidence)
 
-    prediction_report(final_res)
+    print('Model fitting scores:')
+    prediction_report(final_res, True)
+    print('*'*80)
+    print('Model score distribution')
+    prediction_report(final_res, False)
+
     print("Done!")
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+
