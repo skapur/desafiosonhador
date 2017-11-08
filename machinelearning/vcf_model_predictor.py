@@ -16,6 +16,11 @@ class VCFModelPredictor(object):
             "__transformerFilename" : "serialized_models/ALL_filtered_Transformer_CH1.pkl",
             "__classifierFilename" : "serialized_models/ALL_filtered_Classifier_CH1.pkl" 
             },
+        'ALL_Stacking_filtered' : {
+            "__columnsDic" : "serialized_models/ALL_Stacking_filtered_featColumns_CH1.pkl",
+            "__transformerFilename" : "serialized_models/ALL_Stacking_filtered_Transformer_CH1.pkl",
+            "__classifierFilename" : "serialized_models/ALL_Stacking_filtered_Classifier_CH1.pkl" 
+            },
         'MuTectsnvs' : {
             "__columnsDic" : "serialized_models/MuTectsnvs_featColumns_CH1.pkl",
             "__transformerFilename" : "serialized_models/MuTectsnvs_Transformer_CH1.pkl",
@@ -71,6 +76,8 @@ class VCFModelPredictor(object):
             "StrelkaIndelsRnaseq_filtered" : ["RNASeq_mutationFileStrelkaIndel"],
             "StrelkasnvsRnaseq_filtered" : ["RNASeq_mutationFileStrelkaSNV"],
             "ALL_filtered" : ["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
+                "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"],
+            "ALL_Stacking_filtered" : ["WES_mutationFileMutect", "WES_mutationFileStrelkaIndel", "WES_mutationFileStrelkaSNV", 
                 "RNASeq_mutationFileMutect", "RNASeq_mutationFileStrelkaIndel", "RNASeq_mutationFileStrelkaSNV"]
         }
     
@@ -107,7 +114,11 @@ class VCFModelPredictor(object):
         predictionscores = clf.predict_proba(x)
         scores =[]
         for i in range(0,len(predictions)):
-            value = list(clf.classes_).index(predictions[i])
+            classes_op = getattr(self, "classes_", None)
+            if callable(classes_op):
+                value = list(clf.classes_).index(predictions[i])
+            else:
+                value = list(clf.meta_clf_.classes_).index(predictions[i])
             scores.append(predictionscores[i, value])
         
         print("Finished to predict labels using model "+str(modelType)+"...")

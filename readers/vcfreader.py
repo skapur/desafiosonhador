@@ -24,6 +24,11 @@ class VCFReader(object):
         genetoscore = {}
         gene_function = {}
         genes_tlod = {}
+        genes_bigqss = {}
+        genes_qss = {}
+        genes_clustered = {}
+        genes_germline_risk = {}
+        genes_somatic_risk = {}
         vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
         for record in vcfrecords:
             if 'ANN' in record.INFO.keys():
@@ -49,10 +54,32 @@ class VCFReader(object):
                         if tlod > nlod:
                             genes_tlod["TLOD_"+gene_instance] = 1
                     
+                    if 'QSS' in record.INFO.keys() and 'QSS_NT' in record.INFO.keys():
+                        qss = record.INFO['QSS']
+                        qss_nt = record.INFO['QSS_NT']
+                        if qss > 10:
+                            genes_qss["QSS_"+gene_instance] = 1
+                        if qss > qss_nt:
+                            genes_bigqss["BIGQSS_"+gene_instance] = 1
+                    if 'ECNT' in record.INFO.keys():
+                        ecnt = record.INFO['ECNT']
+                        if float(ecnt) > 1: 
+                            genes_clustered["Clustered_"+gene_instance] = 1
+                    if 'HCNT' in record.INFO.keys():
+                        hcnt = record.INFO['HCNT']
+                        if float(hcnt) > 1:
+                            genes_clustered["Clustered_"+gene_instance] = 1
+                    if 'SAO' in record.INFO.keys():
+                        sao = record.INFO['SAO']
+                        if sao == 1 or sao == 3:
+                            genes_germline_risk["Germline_"+gene_instance] = 1
+                        if sao == 2 or sao == 3:
+                            genes_somatic_risk["Somatic_"+gene_instance] = 1
+                    
             #else:
                 #print(record)
                 #print('File: '+filename+" don't have ANN entry")
-        return genetoscore, gene_function, genes_tlod
+        return genetoscore, gene_function, genes_tlod, genes_qss, genes_bigqss, genes_clustered, genes_germline_risk, genes_somatic_risk
     
     def getAllFunctions(self, filenames):
         functionAnnotations = set()
@@ -113,6 +140,40 @@ class VCFReader(object):
                         if tlod > nlod:
                             genes.add("TLOD_"+gene_instance)
         return genes
+    
+    def getGenesWithUpperQSI(self, filename, compressed=True):
+        genes = set()
+        vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
+        for record in vcfrecords:
+            if 'ANN' in record.INFO.keys():
+                ann = record.INFO['ANN']
+                for firstann in ann:
+                    firstann = firstann.split('|')
+                    gene_instance = firstann[3]
+                    if 'QSS' in record.INFO.keys() and 'QSS_NT' in record.INFO.keys():
+                        qss = record.INFO['QSS']
+                        qss_nt = record.INFO['QSS_NT']
+                        if qss > 10:
+                            genes.add("QSS_"+gene_instance)
+                        if qss > qss_nt:
+                            genes.add("BIG_QSS_"+gene_instance)
+        return genes
+    
+    def getGenesWithVlustered(self, filename, compressed=True):
+        genes = set()
+        vcfrecords = vcf.Reader(filename=filename, compressed=compressed)
+        for record in vcfrecords:
+            if 'ANN' in record.INFO.keys():
+                ann = record.INFO['ANN']
+                for firstann in ann:
+                    firstann = firstann.split('|')
+                    gene_instance = firstann[3]
+                    if 'clustered_events' in record.FILTER:
+                        genes.add(gene_instance)
+
+        return genes
+
+    
     def readFiles(self, files):
         for filepath in files:
             self.__vcfinstances[filepath] = self.readVCFFile(filename=filepath, compressed=True)
