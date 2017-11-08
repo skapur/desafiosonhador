@@ -139,35 +139,3 @@ def generateSerializedScoresChallenge1():
 
 if __name__ == '__main__':
     generateSerializedScoresChallenge1()
-        
-import pandas as pd
-
-ch1 = pd.read_csv('predictions_ch1.csv')
-ch1.index = ch1['patient']
-ch1['highriskflag'] = ch1['highriskflag'].astype(str).apply(lambda x: x.upper())
-ch1['predictionscore'] = ch1.apply(func=transformToRankingScore, axis=1)
-ch2 = pd.read_csv('predictions.tsv',sep='\t')
-ch2.index = ch2['patient']
-clin_file_path = '/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv'
-mmcd = MMChallengeData(clin_file_path)
-
-out1 = ch1['predictionscore'].rename('CH1')
-out2 = ch2['predictionscore'].rename('CH2')
-cData = mmcd.clinicalData[['D_Age','D_ISS']]
-
-df = pd.concat([cData, out1, out2], axis=1)
-
-df_drop = df.drop(df[df.isnull()['CH1']].index, axis=0).drop(df[df.isnull()['CH2']].index, axis=0)
-
-from sklearn.preprocessing import Imputer
-yv = (mmcd.clinicalData.loc[df_drop.index,'HR_FLAG'] == 'TRUE').astype(int)
-
-df_imp = Imputer(strategy='median', axis=0).fit_transform(df_drop,yv)
-
-
-from sklearn.linear_model import LogisticRegression
-
-clf = LogisticRegression(C=1)
-from ch2_training_resources import cross_val_function, report
-
-print(report(cross_val_function(df_imp, yv, clf)))
