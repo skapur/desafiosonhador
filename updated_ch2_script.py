@@ -60,19 +60,19 @@ def minmax(x):
 
 def main(argv):
     print("Starting the script!")
-    clin_file_path = '/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv'
-    data_file_path = '/home/skapur/synapse/syn7222203/CH2'
-    # clin_file_path = sys.argv[1]
-    # data_file_path = '/test-data/'
+    # clin_file_path = '/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv'
+    # data_file_path = '/home/skapur/synapse/syn7222203/CH2'
+    clin_file_path = sys.argv[1]
+    data_file_path = '/test-data/'
 
     print("Reading clinical data")
     mmcd = MMChallengeData(clin_file_path)
 
     print('Reading feature list')
-#    colname_dict = read_pickle('/desafiosonhador/colnames_r3.sav')
+   # colname_dict = read_pickle('/desafiosonhador/colnames_r3.sav')
     colname_dict = {
-        ('RNASeq','gene'): read_pickle('RNASeq_genes_08112017'),
-        ('MA','gene'): read_pickle('MA_genes_08112017'),
+        ('RNASeq','gene'): read_pickle('/desafiosonhador/RNASeq_genes_08112017'),
+        ('MA','gene'): read_pickle('/desafiosonhador/MA_genes_08112017'),
         ('MA','probe'):[],
         ('RNASeq','trans'):[]
     }
@@ -116,8 +116,8 @@ def main(argv):
     # RNA_transformer = read_pickle('desafiosonhador/rnaseq_stack_pipeline_08112017')
     # RNA_classifier = read_pickle('desafiosonhador/rnaseq_stack_classifier_08112017')
     print('Reading serialized RNA-Seq data classifiers/transformers')
-    RNA_transformer = read_pickle('rnaseq_stack_pipeline_08112017')
-    RNA_classifier = read_pickle('rnaseq_stack_classifier_08112017')
+    RNA_transformer = read_pickle('/desafiosonhador/rnaseq_stack_pipeline_08112017')
+    RNA_classifier = read_pickle('/desafiosonhador/rnaseq_stack_classifier_08112017')
 
     print('Transforming RNA-Seq data')
     RNA_imputer = Imputer(strategy='median', axis=0)
@@ -151,8 +151,8 @@ def main(argv):
     ##
     ########################
 
-    MA_transformer = read_pickle('transformers_microarrays.sav')
-    MA_classifier = read_pickle('ma_voting_clf.sav')
+    MA_transformer = read_pickle('/desafiosonhador/transformers_microarrays.sav')
+    MA_classifier = read_pickle('/desafiosonhador/ma_voting_clf.sav')
     from genomic_data_test import df_reduce
 
     mv_fun = lambda x: df_reduce(x.values.reshape(1,-1), [], scaler = MA_transformer['scaler'], fts = MA_transformer['fts'], fit = False)[0]
