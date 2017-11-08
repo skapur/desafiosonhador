@@ -10,14 +10,32 @@ from sklearn.neighbors.classification import KNeighborsClassifier
 from sklearn.neural_network.multilayer_perceptron import MLPClassifier
 from sklearn.svm.classes import SVC
 from sklearn.tree.tree import DecisionTreeClassifier
+from sklearn.pipeline import make_pipeline
 
 from mlxtend.classifier import StackingClassifier
+from mlxtend.feature_selection import ColumnSelector
 import numpy as np
 
 
 class VCFModelTrainer(object):
     
-    def __init__(self):
+    def __init__(self, muctectIndex=None, strelkaIndex=None):
+        if muctectIndex is not None:
+            muctect_pipe = make_pipeline(ColumnSelector(
+                cols=muctectIndex), 
+                VotingClassifier(estimators=[('svm', SVC(probability = True)), 
+                                             ('nnet', MLPClassifier()), 
+                                             ('logisticRegression', LogisticRegression(C = 0.001))],
+                                  voting='soft')
+                )
+        if strelkaIndex is not None:
+            strelka_pipe = make_pipeline(ColumnSelector(
+                cols=strelkaIndex), 
+                VotingClassifier(estimators=[('svm', SVC(probability = True)), 
+                                             ('nnet', MLPClassifier()), 
+                                             ('logisticRegression', LogisticRegression(C = 0.001))],
+                                  voting='soft')
+                )
         self.__methods = { 
             "knn" : KNeighborsClassifier(7),
             "nbayes" : GaussianNB(),
@@ -27,13 +45,19 @@ class VCFModelTrainer(object):
             'nnet' : MLPClassifier(),
             'rand_forest' : RandomForestClassifier(max_depth = 5, criterion = "entropy", n_estimators = 100),
             'bagging': BaggingClassifier(max_samples = 1, bootstrap = True),
-            'voting' : VotingClassifier(estimators=[('svm', SVC(probability = True)), ('nnet', MLPClassifier()), ('logisticRegression', LogisticRegression(C = 0.001))], voting='soft'),
-            'stacking' : StackingClassifier(classifiers=[SVC(probability = True), MLPClassifier(), LogisticRegression(C = 0.001)],
+            'voting' : VotingClassifier(estimators=[('svm', SVC(probability = True)), ('nnet', MLPClassifier()), ('logisticRegression', LogisticRegression(C = 0.001))], voting='soft')
+            }
+        if muctectIndex is not None and strelkaIndex is not None:
+            self.__methods['stacking'] = StackingClassifier(
+                classifiers= [muctect_pipe, strelka_pipe],
                           use_probas=True,
                           average_probas=False,
-                          meta_classifier=VotingClassifier(estimators=[('svm', SVC(probability = True)), ('nnet', MLPClassifier()), ('logisticRegression', LogisticRegression(C = 0.001))], voting='soft'))
+                          meta_classifier=
+                          VotingClassifier(estimators=[('svm', SVC(probability = True)), 
+                                                       ('nnet', MLPClassifier()), 
+                                                       ('logisticRegression', LogisticRegression())], 
+                                           voting='soft'))
             
-            }
     #solver = 'newton-cg', C = 0.1, penalty = "l2", tol = 0.001, multi_class = 'multinomial'
     def df_reduce(self, X, y, inputer = None, variance = None, scaler = None, fts = None, filename = None):
         z = None

@@ -7,6 +7,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection.univariate_selection import SelectPercentile
 from sklearn.metrics import classification_report
 from sklearn.model_selection import StratifiedKFold
+
 from sklearn.preprocessing.data import StandardScaler
 from sklearn.preprocessing.imputation import Imputer
 
@@ -320,10 +321,44 @@ def checkmodel():
     f.close()
     print(clf.__class__.__name__)
 
+def testStacking():
+    modelsFolder = '/home/tiagoalves/rrodrigues/'
+    paths = ['/home/tiagoalves/rrodrigues/vcf-datasets_v5/MuTectsnvs_filtered_dataset_CH1.pkl',
+             #'/home/tiagoalves/rrodrigues/vcf-datasets/StrelkaIndels_dataset_CH1.pkl',
+             '/home/tiagoalves/rrodrigues/vcf-datasets_v5/Strelkasnvs_filtered_dataset_CH1.pkl']
+    datasets = {}
+    preprocessor = VCFDataPreprocessor(None)
+    for pat in paths:
+        dataset = read_serialized_dataset(pat)
+        datasets[dataset.get_dataset_origin()] = dataset
+        
+    dataset = preprocessor.prepareDatasetForStacking(datasets)
+    allX = dataset.getFullDataframe(False,False)
+    print(allX.columns)
+    
+    serializeFeatures(modelsFolder, dataset, allX)
+
+    inputer = Imputer(missing_values='NaN', strategy='median', axis=0)
+    variance = None
+    scaler = StandardScaler()
+    fts = SelectPercentile(percentile=10)
+    y = dataset.get_flags()
+    trainer = VCFModelTrainer()
+    X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
+    columnsToCheck = allX.columns[z]
+    print(columnsToCheck)
+    muctectIDs = [x for x in range(len(columnsToCheck)-1) if "MuTectsnvs" in allX.columns[x] or x < 2]
+    strelkaIDs = [x for x in range(len(columnsToCheck)-1) if "Strelkasnv" in allX.columns[x] or x < 2]
+    trainer = VCFModelTrainer(muctectIDs, strelkaIDs)
+    trainer.doCrossValidation('stacking', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('stacking', X, y)
+    serializeClassifier(modelsFolder, dataset, clf)
+
 if __name__ == '__main__':
     #executeCodeOnDarwin()
     #executeCodeManually()
-    executeJoinModelCodeManually()
+    #executeJoinModelCodeManually()
     #compareUnfilteredVSFiltered()
     #checkFeaturePercentage()
     #checkmodel()
+    testStacking()

@@ -8,7 +8,8 @@ from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
 useindividualModels = False
-useGlobalModel = True
+useGlobalModel = False
+useStackingModel = True
 
 def getReportByStudy(df):
     for study in df["study"].unique():
@@ -55,6 +56,17 @@ def generateSubModelPredictions(preprocessor, predictor, datasets):
         print("Start using global dataset to predict...")
         print("="*40)
         data = preprocessor.joinDatasetsToSingleDataset(datasets)
+        allXDataset = data.getFullDataframe(False, False)
+        predictionsAllXDataset, scoresAllXDataset = predictor.generate_predictions_scores(allXDataset, data.get_dataset_origin())
+        predictedALLDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), data.get_dataset_origin(), predictionsAllXDataset, scoresAllXDataset)
+        predictedALLDF.set_index("patient", drop=False, append=False, inplace=True)
+        predictedDFs.append(predictedALLDF)
+        print("Finished global dataset prediction...")
+        print("="*40)
+    if useStackingModel:
+        print("Start using global dataset to predict...")
+        print("="*40)
+        data = preprocessor.prepareDatasetForStacking(datasets)
         allXDataset = data.getFullDataframe(False, False)
         predictionsAllXDataset, scoresAllXDataset = predictor.generate_predictions_scores(allXDataset, data.get_dataset_origin())
         predictedALLDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), data.get_dataset_origin(), predictionsAllXDataset, scoresAllXDataset)
