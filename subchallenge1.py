@@ -8,7 +8,7 @@ from preprocessor.vcf_data_preprocessing import VCFDataPreprocessor
 from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
 useindividualModels = False
-useGlobalModel = False
+useGlobalModel = True
 useStackingModel = True
 
 def getReportByStudy(df):
