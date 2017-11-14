@@ -51,7 +51,7 @@ class MMChallengeData(object):
             df = df.dropna(axis=0, how='all') if removeRows else df
             df = df.dropna(axis=1, how='all') if removeCols else df
         else:
-            df = df.loc[:, columnNames].fillna(value=0)
+            df = df.loc[:, columnNames]
 
         return df, subcd.loc[df.index, clinicalVariables], subcd.loc[df.index, outputVariable]
 
