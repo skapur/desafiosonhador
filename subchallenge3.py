@@ -84,7 +84,7 @@ def main(argv):
             
     print("Starting reading VCF and Expression Files...")
     preprocessor = AllDataPreprocessor(inputfile)
-    datasetsFiltered = preprocessor.getPatientDataByDataset()
+    datasetsFiltered = preprocessor.getPatientDataByDataset(directoryFolder="/home/rrodrigues/Work/link-data")
     print("Finished reading VCF and Expression Files...")
     
     predictor = AllModelPredictor()
@@ -107,4 +107,6 @@ def main(argv):
     print("Sub Challenge 3 prediction finished...")
 
 
+if __name__ == "__main__":
+    main(sys.argv[1:])
         
