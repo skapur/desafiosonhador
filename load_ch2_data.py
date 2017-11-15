@@ -77,31 +77,37 @@ def get_ch2_data(clin_file_path, data_file_path, forTraining=True):
 	RNA_quantile_steps = np.linspace(0.1, 0.9, 5)
 
 	RNA_X, RNA_C, RNA_y = mmcd.dataDict[('RNASeq', 'gene')]
-	RNA_Xb = generate_binary_features(RNA_X, RNA_quantile_steps)
+	RNA_x_final = pd.DataFrame()
 
-	RNA_transformer = read_pickle('rnaseq_stack_pipeline_08112017')
-	RNA_imputer = Imputer(strategy='median', axis=0)
+	if not RNA_X.empty:
+		RNA_Xb = generate_binary_features(RNA_X, RNA_quantile_steps)
 
-	RNA_Xbd_imp = RNA_imputer.fit_transform(RNA_Xb)
-	RNA_Xbd_sel = RNA_transformer.transform(RNA_Xbd_imp)
+		RNA_transformer = read_pickle('rnaseq_stack_pipeline_08112017')
+		RNA_imputer = Imputer(strategy='median', axis=0)
 
-	RNA_x_final = pd.DataFrame(RNA_Xbd_sel,index=RNA_X.index)
+		RNA_Xbd_imp = RNA_imputer.fit_transform(RNA_Xb)
+		RNA_Xbd_sel = RNA_transformer.transform(RNA_Xbd_imp)
 
-	RNA_step_list = RNA_transformer.steps
-	sp_index = np.where(RNA_step_list[-1][1].get_support())[0]
-	vtr_index = np.where(RNA_step_list[-2][1].get_support())[0]
+		RNA_x_final = pd.DataFrame(RNA_Xbd_sel,index=RNA_X.index)
 
-	RNA_x_final.columns = RNA_Xb.columns[vtr_index[sp_index]].tolist()
+		RNA_step_list = RNA_transformer.steps
+		sp_index = np.where(RNA_step_list[-1][1].get_support())[0]
+		vtr_index = np.where(RNA_step_list[-2][1].get_support())[0]
+
+		RNA_x_final.columns = RNA_Xb.columns[vtr_index[sp_index]].tolist()
 
 	### Microarray data
 
 	MA_X, MA_C, MA_y = mmcd.dataDict[('MA', 'gene')]
-	MA_imputer = Imputer(strategy='median', axis=0)
-	MA_X_imp = pd.DataFrame(MA_imputer.fit_transform(MA_X, MA_y))
+	MA_X_final = pd.DataFrame()
 
-	MA_transformer = read_pickle('transformers_microarrays.sav')
-	MA_Xt, _, MA_support = df_reduce(MA_X_imp, [], scaler = MA_transformer['scaler'], fts = MA_transformer['fts'], fit = False)
-	MA_X_final = pd.DataFrame(MA_Xt, index=MA_X.index, columns=MA_X.columns[MA_support])
+	if not MA_X.empty:
+		MA_imputer = Imputer(strategy='median', axis=0)
+		MA_X_imp = pd.DataFrame(MA_imputer.fit_transform(MA_X, MA_y))
+
+		MA_transformer = read_pickle('transformers_microarrays.sav')
+		MA_Xt, _, MA_support = df_reduce(MA_X_imp, [], scaler = MA_transformer['scaler'], fts = MA_transformer['fts'], fit = False)
+		MA_X_final = pd.DataFrame(MA_Xt, index=MA_X.index, columns=MA_X.columns[MA_support])
 
 	return RNA_x_final, RNA_C, RNA_y, MA_X_final, MA_C, MA_y
 
