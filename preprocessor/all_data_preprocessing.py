@@ -40,33 +40,33 @@ class AllDataPreprocessor(object):
             microarraysClinical = microarraysClinical[valid_samples2]
             microarraysFlags = microarraysFlags[valid_samples2]
             microarraysFlags = microarraysFlags == 'TRUE'
-        
-        rnaseqData = PatientData("RNASeq", pd.Series(data=rnaseqClinical.index.values, name="Patient", index=rnaseqClinical.index.values))
-        rnaseqData.set_ages(rnaseqClinical["D_Age"])
-        rageRiskDF = rnaseqClinical["D_Age"].copy()
-        rageRiskDF.name = "D_Age_Risk"
-        rageRiskDF[rageRiskDF >= 65] = 1
-        rageRiskDF[rageRiskDF < 65] = 0
-        rnaseqData.set_ageRisk(rageRiskDF)
-        rnaseqData.set_ISSs(rnaseqClinical["D_ISS"])
-        if forTraining:
-            rnaseqData.set_flags(rnaseqFlags)
-        rnaseqData.set_genes_rnaseq(rnaseq)
+
         if not rnaseq.empty:
+            rnaseqData = PatientData("RNASeq", pd.Series(data=rnaseqClinical.index.values, name="Patient", index=rnaseqClinical.index.values))
+            rnaseqData.set_ages(rnaseqClinical["D_Age"])
+            rageRiskDF = rnaseqClinical["D_Age"].copy()
+            rageRiskDF.name = "D_Age_Risk"
+            rageRiskDF[rageRiskDF >= 65] = 1
+            rageRiskDF[rageRiskDF < 65] = 0
+            rnaseqData.set_ageRisk(rageRiskDF)
+            rnaseqData.set_ISSs(rnaseqClinical["D_ISS"])
+            if forTraining:
+                rnaseqData.set_flags(rnaseqFlags)
+            rnaseqData.set_genes_rnaseq(rnaseq)
             result["RNASeq"] = rnaseqData
-            
-        microarraysData = PatientData("MicroArrays", pd.Series(data=microarraysClinical.index.values, name="Patient", index=microarraysClinical.index.values))
-        microarraysData.set_ages(microarraysClinical["D_Age"])
-        mageRiskDF = microarraysClinical["D_Age"].copy()
-        mageRiskDF.name = "D_Age_Risk"
-        mageRiskDF[mageRiskDF >= 65] = 1
-        mageRiskDF[mageRiskDF < 65] = 0
-        microarraysData.set_ageRisk(mageRiskDF)
-        microarraysData.set_ISSs(microarraysClinical["D_ISS"])
-        if forTraining:
-            microarraysData.set_flags(microarraysFlags)
-        microarraysData.set_genes_microarray(microarrays)
+
         if not microarrays.empty:
+            microarraysData = PatientData("MicroArrays", pd.Series(data=microarraysClinical.index.values, name="Patient", index=microarraysClinical.index.values))
+            microarraysData.set_ages(microarraysClinical["D_Age"])
+            mageRiskDF = microarraysClinical["D_Age"].copy()
+            mageRiskDF.name = "D_Age_Risk"
+            mageRiskDF[mageRiskDF >= 65] = 1
+            mageRiskDF[mageRiskDF < 65] = 0
+            microarraysData.set_ageRisk(mageRiskDF)
+            microarraysData.set_ISSs(microarraysClinical["D_ISS"])
+            if forTraining:
+                microarraysData.set_flags(microarraysFlags)
+            microarraysData.set_genes_microarray(microarrays)
             result["MicroArrays"] = microarraysData
             
         return result
