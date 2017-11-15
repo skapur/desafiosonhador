@@ -77,6 +77,7 @@ def get_ch2_data(clin_file_path, data_file_path, forTraining=True):
 	RNA_quantile_steps = np.linspace(0.1, 0.9, 5)
 
 	RNA_X, RNA_C, RNA_y = mmcd.dataDict[('RNASeq', 'gene')]
+	RNA_C = RNA_C.T.drop_duplicates().T
 	RNA_x_final = pd.DataFrame()
 
 	if not RNA_X.empty:
@@ -99,6 +100,7 @@ def get_ch2_data(clin_file_path, data_file_path, forTraining=True):
 	### Microarray data
 
 	MA_X, MA_C, MA_y = mmcd.dataDict[('MA', 'gene')]
+	MA_C = MA_C.T.drop_duplicates().T
 	MA_X_final = pd.DataFrame()
 
 	if not MA_X.empty:
