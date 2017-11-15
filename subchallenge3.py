@@ -84,7 +84,7 @@ def main(argv):
             
     print("Starting reading VCF and Expression Files...")
     preprocessor = AllDataPreprocessor(inputfile)
-    datasetsFiltered = preprocessor.getPatientDataByDataset(directoryFolder="/home/rrodrigues/Work/link-data")
+    datasetsFiltered = preprocessor.getPatientDataByDataset()
     print("Finished reading VCF and Expression Files...")
     
     predictor = AllModelPredictor()

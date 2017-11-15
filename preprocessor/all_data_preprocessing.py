@@ -11,7 +11,12 @@ class AllDataPreprocessor(object):
     def __init__(self, submissionfile):
         if submissionfile is not None:
             self.__submissionfile = submissionfile
-            
+            self.__clinicalData = pd.read_csv(submissionfile)
+            self.__clinicalData["Patient Index"] = self.__clinicalData.index
+            self.__clinicalData.index = self.__clinicalData["Patient"]
+    
+    def getClinicalData(self):
+        return self.__clinicalData        
 
     def __addVCFInformation(self, directoryFolder, useFiltered, forTraining, groupAges):
         vcfpreprocessor = VCFDataPreprocessor(self.__submissionfile)
