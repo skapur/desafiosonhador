@@ -59,10 +59,12 @@ def get_ch2_data(clin_file_path, data_file_path, forTraining=True):
 			('RNASeq', 'trans'): lambda x: x.split('.')[0]
 		}
 	clinical_variables = ["D_Age", "D_ISS"]
-    if forTraining:
-	       output_variable = "HR_FLAG"
-    else:
-        output_variable = "D_Age"
+
+	if forTraining:
+		output_variable = "HR_FLAG"
+	else:
+		output_variable = "D_Age"
+
 	mmcd.generateDataDict(clinicalVariables=clinical_variables,
 						  outputVariable=output_variable,
 						  directoryFolder=data_file_path,
