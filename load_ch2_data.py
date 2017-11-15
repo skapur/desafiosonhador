@@ -77,10 +77,10 @@ def get_ch2_data(clin_file_path, data_file_path, forTraining=True):
 	RNA_quantile_steps = np.linspace(0.1, 0.9, 5)
 
 	RNA_X, RNA_C, RNA_y = mmcd.dataDict[('RNASeq', 'gene')]
-	RNA_C = RNA_C.T.drop_duplicates().T
 	RNA_x_final = pd.DataFrame()
 
 	if not RNA_X.empty:
+		RNA_C = RNA_C.T.drop_duplicates().T
 		RNA_Xb = generate_binary_features(RNA_X, RNA_quantile_steps)
 
 		RNA_transformer = read_pickle('rnaseq_stack_pipeline_08112017')
@@ -100,10 +100,10 @@ def get_ch2_data(clin_file_path, data_file_path, forTraining=True):
 	### Microarray data
 
 	MA_X, MA_C, MA_y = mmcd.dataDict[('MA', 'gene')]
-	MA_C = MA_C.T.drop_duplicates().T
 	MA_X_final = pd.DataFrame()
 
 	if not MA_X.empty:
+		MA_C = MA_C.T.drop_duplicates().T
 		MA_imputer = Imputer(strategy='median', axis=0)
 		MA_X_imp = pd.DataFrame(MA_imputer.fit_transform(MA_X, MA_y))
 
@@ -118,6 +118,3 @@ if __name__ == '__main__':
 	data_file_path = '/home/skapur/synapse/syn7222203/CH2'
 
 	RNA_x_final, MA_X_final = get_ch2_data(clin_file_path, data_file_path)
-
-
-
