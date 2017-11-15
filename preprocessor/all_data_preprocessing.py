@@ -26,7 +26,7 @@ class AllDataPreprocessor(object):
 
     def __addExpressionInformation(self, directoryFolder, forTraining=False):
         result = {}
-        rnaseq, rnaseqClinical, rnaseqFlags, microarrays, microarraysClinical, microarraysFlags = get_ch2_data(self.__submissionfile, directoryFolder)
+        rnaseq, rnaseqClinical, rnaseqFlags, microarrays, microarraysClinical, microarraysFlags = get_ch2_data(self.__submissionfile, directoryFolder, forTraining)
         
         if forTraining:
             valid_samples = rnaseqFlags != "CENSORED"

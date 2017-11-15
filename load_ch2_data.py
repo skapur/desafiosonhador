@@ -43,7 +43,7 @@ def df_reduce(X, y, scaler = None, fts = None, fit = True, filename = None):
             #raise e
     return X, y, fts.get_support(True)
 
-def get_ch2_data(clin_file_path, data_file_path):
+def get_ch2_data(clin_file_path, data_file_path, forTraining=True):
 
 	#clin_file_path = '/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv'
 	#data_file_path = '/home/skapur/synapse/syn7222203/CH2'
@@ -59,7 +59,10 @@ def get_ch2_data(clin_file_path, data_file_path):
 			('RNASeq', 'trans'): lambda x: x.split('.')[0]
 		}
 	clinical_variables = ["D_Age", "D_ISS"]
-	output_variable = "HR_FLAG"
+    if forTraining:
+	       output_variable = "HR_FLAG"
+    else:
+        output_variable = "D_Age"
 	mmcd.generateDataDict(clinicalVariables=clinical_variables,
 						  outputVariable=output_variable,
 						  directoryFolder=data_file_path,
