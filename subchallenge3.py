@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
 import sys, getopt, os
+
+from machinelearning.all_model_predictor import AllModelPredictor
 import pandas as pd
-from challengesJoiner import joinAndPredictDataframes
-from ch2_script import read_pickle
-from sklearn.preprocessing import Imputer
+from preprocessor.all_data_preprocessing import AllDataPreprocessor
+from preprocessor.vcf_features_selector import VCFFeaturesSelector
 
 
 def getReportByStudy(df):
@@ -29,6 +30,39 @@ def prediction_report(df):
     print("Median: "+str(median))
     print("True predictions: "+str(num_trues))
 
+def generateSubModelPredictions(preprocessor, predictor, datasets):
+    predictedDFs = []
+    
+    print("="*40)
+    print("Start using individual datasets to predict...")
+    print("="*40)
+    for modelType in datasets.keys():
+        selector = VCFFeaturesSelector(datasets[modelType])
+        dataset = selector.generateFilteredData()
+        X = dataset.getFullDataframe(False, False)
+        predictions, scores = predictor.generate_predictions_scores(X, modelType)
+        predictedDF = predictor.generate_prediction_dataframe(preprocessor.getClinicalData(), modelType, predictions, scores)
+        predictedDF.set_index("patient", drop=False, append=False, inplace=True)
+        predictedDFs.append(predictedDF)
+    
+    print("Finished individual datasets prediction...")
+    print("="*40)
+
+    return predictedDFs
+
+def selectBestScoresFromDifferentModels(predictedDFs):
+    outputDF = pd.concat(predictedDFs)
+    outputDF = outputDF.sort_values('predictionscore', ascending=False).groupby('patient', as_index=False).first()
+    return outputDF
+
+def transformToRankingScore(x):
+    if x['highriskflag'] == 'TRUE':
+        return x['predictionscore']
+    elif x['highriskflag'] == 'FALSE':
+        return 1.0 - x['predictionscore']
+    else:
+        raise("FLAG NOT FOUND: " + x['highriskflag'])
+
 def main(argv):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(dir_path)
@@ -48,29 +82,29 @@ def main(argv):
         elif opt in ("-o", "--ofile"):
             outputfile = arg
             
-    df, out1, out2 = joinAndPredictDataframes(inputfile)
-    metaclf = read_pickle('ch3_logreg_meta')
+    print("Starting reading VCF and Expression Files...")
+    preprocessor = AllDataPreprocessor(inputfile)
+    datasetsFiltered = preprocessor.getPatientDataByDataset()
+    print("Finished reading VCF and Expression Files...")
+    
+    predictor = AllModelPredictor()
+    predictedDFs = generateSubModelPredictions(preprocessor, predictor, datasetsFiltered)
 
-    patientmap = pd.concat([out1[['study','patient']], out2[['study','patient']]], axis=0).drop_duplicates()
-    patientmap.index = patientmap['patient']
-
-    df_drop = df.drop(df[df.isnull()['challenge1_scores']].index, axis=0).drop(df[df.isnull()['challenge2_scores']].index, axis=0)
-    df_imp = Imputer(strategy='median', axis=0).fit_transform(df_drop)
-
-    df_drop_score_df = patientmap.loc[df_drop.index,:]
-    df_both = metaclf.predict(df_imp)
-    df_both_proba = metaclf.predict_proba(df_imp)[:,1]
-    df_drop_score_df['predictionscore'] = df_both_proba
-    df_drop_score_df['highriskflag'] = df_both
-    df_drop_score_df['highriskflag'] = df_drop_score_df['highriskflag'].astype(bool).astype(str).apply(lambda x: x.upper())
-
-
-    df_ndrop = df.drop(df_drop.index, axis=0)
-    ch1df = out1.loc[df_ndrop['CH1'].isnotnull().index,:]
-    ch2df = out2.loc[df_ndrop['CH2'].isnotnull().index,:]
-
-    final_pred = pd.concat([df_drop_score_df, ch1df, ch2df])
-    final_pred.to_csv(outputfile, sep='\t', index = False)
+    outputDF = selectBestScoresFromDifferentModels(predictedDFs)
+    print("="*40)
+    print("Model fitment by study: ")
+    getReportByStudy(outputDF)
+    print("="*40)
+    print("Model fitment scoring: ")
+    prediction_report(outputDF)
+    print("="*40)
+    print("Model ranking scoring: ")
+    outputDF['predictionscore'] = outputDF.apply(transformToRankingScore, axis=1)
+    prediction_report(outputDF)
+    print("="*40)
+    outputDF.to_csv(outputfile, index=False, sep='\t')
+    
+    print("Sub Challenge 3 prediction finished...")
 
 
         

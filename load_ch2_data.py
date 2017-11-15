@@ -98,7 +98,7 @@ def get_ch2_data(clin_file_path, data_file_path):
 	MA_Xt, _, MA_support = df_reduce(MA_X_imp, [], scaler = MA_transformer['scaler'], fts = MA_transformer['fts'], fit = False)
 	MA_X_final = pd.DataFrame(MA_Xt, index=MA_X.index, columns=MA_X.columns[MA_support])
 
-	return RNA_x_final, MA_X_final
+	return RNA_x_final, RNA_C, RNA_y, MA_X_final, MA_C, MA_y
 
 if __name__ == '__main__':
 	clin_file_path = '/home/skapur/synapse/syn7222203/Clinical Data/sc2_Training_ClinAnnotations.csv'

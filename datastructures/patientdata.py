@@ -22,6 +22,8 @@ class PatientData(object):
         self.__genes_clustered = None
         self.__genes_germline_risk = None
         self.__genes_somatic_risk = None
+        self.__genes_microarray = None
+        self.__genes_rnaseq = None
         self.__flags = None
 
     def get_dataset_origin(self):
@@ -68,6 +70,12 @@ class PatientData(object):
 
     def get_flags(self):
         return self.__flags
+    
+    def get_genes_microarray(self):
+        return self.__genes_microarray
+
+    def get_genes_rnaseq(self):
+        return self.__genes_rnaseq
 
     def set_ages(self, value):
         if isinstance(value, pd.Series):
@@ -149,6 +157,18 @@ class PatientData(object):
             else:
                 raise Exception("Flags must be a Series")
     
+    def set_genes_microarray(self, value):
+        if isinstance(value, pd.DataFrame):
+            self.__genes_microarray = value
+        else:
+            raise Exception("Genes microarray must be a dataframe")  
+
+    def set_genes_rnaseq(self, value):
+        if isinstance(value, pd.DataFrame):
+            self.__genes_rnaseq = value
+        else:
+            raise Exception("Genes rnaseq must be a dataframe")  
+    
     def getFullDataframe(self, withPatients=True, withFlags=True, withCytogenetics=True):
         fulldf = [self.__patients.copy()]
         if self.__ages is not None:
@@ -176,8 +196,13 @@ class PatientData(object):
             fulldf.append(self.__genes_germline_risk)
         if self.__genes_somatic_risk is not None:
             fulldf.append(self.__genes_somatic_risk)
+        if self.__genes_microarray is not None:
+            fulldf.append(self.__genes_microarray)
+        if self.__genes_rnaseq is not None:
+            fulldf.append(self.__genes_rnaseq)
         if self.__flags is not None and withFlags:
             fulldf.append(self.__flags)
+        print(fulldf)
         fulldf = pd.concat(fulldf, axis=1)
         if not withPatients:
             fulldf.drop("Patient", axis=1, inplace=True)

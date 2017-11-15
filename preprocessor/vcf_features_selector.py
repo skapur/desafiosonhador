@@ -31,6 +31,10 @@ class VCFFeaturesSelector(object):
         filteredData.set_ageRisk(self.__data.get_ageRisk())
         filteredData.set_ISSs(self.__data.get_ISSs())
         filteredData.set_flags(self.__data.get_flags())
+        if self.__data.get_genes_microarray() is not None:
+            filteredData.set_genes_microarray(self.__data.get_genes_microarray())
+        if self.__data.get_genes_rnaseq() is not None:
+            filteredData.set_genes_rnaseq(self.__data.get_genes_rnaseq())
         scoring = self.__generateFilteredGenesScoringDF(self.__data)
         if scoring is not None:
             filteredData.set_genes_scoring(scoring)
