@@ -52,9 +52,9 @@ def execute():
     modelsFolder = '/home/rrodrigues/Work'
     
     #datasetpath='/home/rrodrigues/Work/all-datasets/MuTectsnvs_filtered_dataset_CH1.pkl'
-    datasetpath='/home/rrodrigues/Work/all-datasets/Strelkasnvs_filtered_dataset_CH1.pkl'
+    #datasetpath='/home/rrodrigues/Work/all-datasets/Strelkasnvs_filtered_dataset_CH1.pkl'
     #datasetpath='/home/rrodrigues/Work/all-datasets/RNASeq_dataset_CH1.pkl'
-    #datasetpath='/home/rrodrigues/Work/all-datasets/MicroArrays_dataset_CH1.pkl'
+    datasetpath='/home/rrodrigues/Work/all-datasets/MicroArrays_dataset_CH1.pkl'
     
     
     dataset = read_serialized_dataset(datasetpath)
@@ -71,14 +71,14 @@ def execute():
     #variance = VarianceThreshold(threshold=(.9 * (1 - .9)))
     variance = None
     scaler = StandardScaler()
-    fts = SelectPercentile(percentile=9)
+    fts = SelectPercentile(percentile=100)
     y = dataset.get_flags()
     print(len(y))
     X, y, z = trainer.df_reduce(allX, y, inputer, variance, scaler, fts, generateTransformerName(modelsFolder, dataset, True))
     columnsToCheck = allX.columns[z]
     print(columnsToCheck)
-    trainer.doCrossValidation('voting', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
-    clf = trainer.trainModel('voting', X, y)
+    trainer.doCrossValidation('nnet', X, y, folds=StratifiedKFold(n_splits=10, shuffle=False))
+    clf = trainer.trainModel('nnet', X, y)
     serializeClassifier(modelsFolder, dataset, clf)
 
 if __name__ == '__main__':

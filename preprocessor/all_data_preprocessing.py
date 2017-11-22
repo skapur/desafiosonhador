@@ -26,8 +26,8 @@ class AllDataPreprocessor(object):
 		result = {}
 		rnaseq, rnaseqClinical, rnaseqFlags, microarrays, microarraysClinical, microarraysFlags = get_ch2_data(
 			self.__submissionfile, directoryFolder, forTraining)
-		for df in [rnaseq, rnaseqClinical, rnaseqFlags, microarrays, microarraysClinical, microarraysFlags]:
-			print(df.shape)
+		#for df in [rnaseq, rnaseqClinical, rnaseqFlags, microarrays, microarraysClinical, microarraysFlags]:
+		#	print(df.shape)
 		if forTraining:
 			valid_samples = rnaseqFlags != "CENSORED"
 			rnaseq = rnaseq[valid_samples]
